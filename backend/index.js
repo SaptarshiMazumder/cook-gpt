@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const OpenAI = require("openai");
-
+require('dotenv').config();
 
 
 
@@ -11,8 +11,12 @@ app.use(cors());
 
 
 const PORT = 4000;
+const openaiApiKey = process.env.OPENAI_API_KEY;
+if (!openaiApiKey) {
+    throw new Error('Missing OpenAI API Key in environment variables');
+}
 const client = new OpenAI({
-    apiKey: "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",
+    apiKey: openaiApiKey
 });
 
 async function getChatCompletion(prompt) {

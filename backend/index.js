@@ -9,12 +9,9 @@ require('dotenv').config();
 const app = express();
 app.use(cors());
 
+const openaiApiKey = process.env.OPENAI_API_KEY;
 
 const PORT = 4000;
-const openaiApiKey = process.env.OPENAI_API_KEY;
-if (!openaiApiKey) {
-    throw new Error('Missing OpenAI API Key in environment variables');
-}
 const client = new OpenAI({
     apiKey: openaiApiKey
 });

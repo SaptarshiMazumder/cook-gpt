@@ -1,0 +1,33 @@
+version: "3.8"
+services:
+  backend:
+    build: ./backend
+    container_name: backend_c
+    ports:
+      - '4000:4000'
+    networks:
+      - cookie-monster
+    # environment:
+    #   - POSTGRES_HOST=192.168.1.7
+    #   - POSTGRES_USER=postgres
+    #   - POSTGRES_PASSWORD=gjmptwad
+
+
+
+  frontend:
+    build: ./frontend
+    container_name: frontend_react
+    ports:
+      - '3000:3000'
+    environment:
+      - PORT=3000
+    networks:
+      - cookie-monster   # Set the environment variable to use port 3001
+
+    stdin_open: true
+
+  
+
+networks:
+  cookie-monster:
+    driver: bridge

@@ -2,8 +2,8 @@ const { encryptWithAES, decryptWithAES } = require('./aes');
 const { encryptWithRSA, decryptWithRSA } = require('./rsa');
 const crypto = require('crypto');
 const axios = require('axios'); 
-const { clientPrivateKey, clientPublicKey } = require('../../utils/keys');
-const { serverPrivateKey, serverPublicKey } = require('../../utils/keys');
+const { clientPrivateKey } = require('../../utils/keys');
+const { serverPrivateKey } = require('../../utils/keys');
 
 
 function generateAESKeyAndIV() {
@@ -13,7 +13,7 @@ function generateAESKeyAndIV() {
     };
 }
 
-async function encryptPayloadForBackend(text, url = 'http://localhost:4000/encryption/decryptPayloadForBackend') {
+async function encryptPayloadForServerFromClient(text, url = 'http://localhost:4000/encryption/decryptPayloadForServer') {
     try {
         
         const { key: aesKey, iv } = generateAESKeyAndIV();
@@ -30,7 +30,7 @@ async function encryptPayloadForBackend(text, url = 'http://localhost:4000/encry
             payload: encryptedPayload,
         });
 
-        console.log('Server response:', response.data);
+
         return response.data;
     } catch (error) {
         console.error('Error in testEncryption:', error.message);
@@ -38,13 +38,26 @@ async function encryptPayloadForBackend(text, url = 'http://localhost:4000/encry
     }
 }
 
-function decryptPayloadForBackend(encryptedAESKey, encryptedIV, payload) {
+async function decryptPayloadForServer(encryptedAESKey, encryptedIV, payload) {
     try {
+        console.log('------------------------------------------');
+        console.log('Encrypted AES Key:', encryptedAESKey);
+        console.log('Encrypted IV:', encryptedIV);
+        console.log('Payload:', payload);
+        console.log('------------------------------------------');
+
         const aesKey = decryptWithRSA(encryptedAESKey, clientPrivateKey);
         const iv = decryptWithRSA(encryptedIV, clientPrivateKey);
         const decryptedPayload = decryptWithAES(payload, aesKey, iv);
+        
+        //Do something with the data here ->
+        const modifiedPayload = `${decryptedPayload} - After doing some operation, sending it to client`;
+        console.log('Modified Payload:', modifiedPayload);
 
-        return decryptedPayload;
+        const encryptedDecryptedResponseForClient = await encryptResponseForClientFromServer(modifiedPayload);
+        
+        return encryptedDecryptedResponseForClient;
+        // return decryptedPayload;
     } catch (error) {
         console.error('Error decrypting payload:', error.message);
         throw error;
@@ -52,8 +65,8 @@ function decryptPayloadForBackend(encryptedAESKey, encryptedIV, payload) {
 }
 
 
-async function encryptResponseForFrontend(data) {
-    let url = 'http://localhost:4000/encryption/decryptResponseForFrontend';
+async function encryptResponseForClientFromServer(data) {
+    let url = 'http://localhost:4000/encryption/decryptResponseForClient';
     try {
 
         // Step 1: Generate AES Key and IV
@@ -81,7 +94,14 @@ async function encryptResponseForFrontend(data) {
     }
 }
 
- function decryptResponseForFrontend(encryptedAESKey, encryptedIV, payload) {
+/**
+ * Decrypts response from server. The response is encrypted with AES key and IV which are encrypted with server's public RSA key.
+ * @param {string} encryptedAESKey - AES key encrypted with server's public RSA key
+ * @param {string} encryptedIV - IV encrypted with server's public RSA key
+ * @param {string} payload - Encrypted payload
+ * @returns {Promise<string>} Decrypted payload
+ */
+ function decryptResponseForClient(encryptedAESKey, encryptedIV, payload) {
     try {
         const aesKey = decryptWithRSA(encryptedAESKey, serverPrivateKey);
         const iv = decryptWithRSA(encryptedIV, serverPrivateKey);
@@ -95,14 +115,16 @@ async function encryptResponseForFrontend(data) {
 }
 
 
+
+
 module.exports = {
     generateAESKeyAndIV,
     encryptWithAES,
     decryptWithAES,
     encryptWithRSA,
     decryptWithRSA,
-    encryptPayloadForBackend,
-    decryptPayloadForBackend,
-    encryptResponseForFrontend,
-    decryptResponseForFrontend,
+    encryptPayloadForServerFromClient,
+    decryptPayloadForServer,
+    encryptResponseForClientFromServer,
+    decryptResponseForClient,
 };

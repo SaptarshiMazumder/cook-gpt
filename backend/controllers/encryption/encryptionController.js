@@ -4,41 +4,54 @@ const crypto = require('crypto');
 const axios = require('axios'); 
 const { clientPrivateKey } = require('../../utils/keys');
 const { serverPrivateKey } = require('../../utils/keys');
+const CryptoJS = require('crypto-js');
 
+
+// function generateAESKeyAndIV() {
+//     return {
+//         key: crypto.randomBytes(32), 
+//         iv: crypto.randomBytes(16), 
+//     };
+// }
 
 function generateAESKeyAndIV() {
     return {
-        key: crypto.randomBytes(32), 
-        iv: crypto.randomBytes(16), 
+        key: CryptoJS.lib.WordArray.random(32).toString(CryptoJS.enc.Base64), // 256-bit AES key
+        iv: CryptoJS.lib.WordArray.random(16).toString(CryptoJS.enc.Base64), // 16-byte IV
     };
 }
 
-async function encryptPayloadForServerFromClient(text, url = 'http://localhost:4000/encryption/decryptPayloadForServer') {
-    try {
+
+// async function encryptPayloadForServerFromClient(
+//     text, 
+//     url = 'http://localhost:4000/encryption/decryptPayloadForServer'
+// ) {
+//     try {
         
-        const { key: aesKey, iv } = generateAESKeyAndIV();
+//         const { key: aesKey, iv } = generateAESKeyAndIV();
        
-        const encryptedPayload = encryptWithAES(text, aesKey, iv);
-        const { data: publicKeyResponse } = await axios.get('http://localhost:4000/encryption/client-public-key');
-        const publicKey = publicKeyResponse.clientPublicKey;
+//         const encryptedPayload = encryptWithAES(text, aesKey, iv);
+//         const { data: publicKeyResponse } = await axios.get('http://localhost:4000/encryption/client-public-key');
+//         const publicKey = publicKeyResponse.clientPublicKey;
 
-        const encryptedAESKey = encryptWithRSA(aesKey, publicKey);
-        const encryptedIV = encryptWithRSA(iv, publicKey);
-        const response = await axios.post(url, {
-            encryptedAESKey,
-            encryptedIV,
-            payload: encryptedPayload,
-        });
+//         const encryptedAESKey = encryptWithRSA(aesKey, publicKey);
+//         const encryptedIV = encryptWithRSA(iv, publicKey);
+//         const response = await axios.post(url, {
+//             encryptedAESKey,
+//             encryptedIV,
+//             payload: encryptedPayload,
+//         });
 
 
-        return response.data;
-    } catch (error) {
-        console.error('Error in testEncryption:', error.message);
-        throw error;
-    }
-}
+//         return response.data;
+//     } catch (error) {
+//         console.error('Error in testEncryption:', error.message);
+//         throw error;
+//     }
+// }
 
 async function decryptPayloadForServer(encryptedAESKey, encryptedIV, payload) {
+    console.log('Reached server, now trying to decrypt...');
     try {
         console.log('------------------------------------------');
         console.log('Encrypted AES Key:', encryptedAESKey);
@@ -66,7 +79,7 @@ async function decryptPayloadForServer(encryptedAESKey, encryptedIV, payload) {
 
 
 async function encryptResponseForClientFromServer(data) {
-    let url = 'http://localhost:4000/encryption/decryptResponseForClient';
+    // let url = 'http://localhost:4000/encryption/decryptResponseForClient';
     try {
 
         // Step 1: Generate AES Key and IV
@@ -81,38 +94,46 @@ async function encryptResponseForClientFromServer(data) {
         const encryptedAESKey = encryptWithRSA(aesKey, publicKey);
         const encryptedIV = encryptWithRSA(iv, publicKey);
         console.log('Encrypted Payload:', encryptedPayload);
+
+        // Step 5: Send back the encrypted response
+        return {
+            encryptedAESKey,
+            encryptedIV,
+            payload: encryptedPayload,
+        };
         const response = await axios.post(url, {
             encryptedAESKey,
             encryptedIV,
             payload: encryptedPayload,
         });
-        // return { encryptedAESKey, encryptedIV, payload: encryptedPayload };
+        // // return { encryptedAESKey, encryptedIV, payload: encryptedPayload };
         return response.data;
     } catch (error) {
-        console.error('Error encrypting data for frontend:', error.message);
+        console.error('Error encrypting data for client:', error.message);
         throw error;
     }
 }
 
-/**
- * Decrypts response from server. The response is encrypted with AES key and IV which are encrypted with server's public RSA key.
- * @param {string} encryptedAESKey - AES key encrypted with server's public RSA key
- * @param {string} encryptedIV - IV encrypted with server's public RSA key
- * @param {string} payload - Encrypted payload
- * @returns {Promise<string>} Decrypted payload
- */
- function decryptResponseForClient(encryptedAESKey, encryptedIV, payload) {
-    try {
-        const aesKey = decryptWithRSA(encryptedAESKey, serverPrivateKey);
-        const iv = decryptWithRSA(encryptedIV, serverPrivateKey);
-        const decryptedPayload = decryptWithAES(payload, aesKey, iv);
+// /**
+//  * Decrypts response from server. The response is encrypted with AES key and IV which are encrypted with server's public RSA key.
+//  * @param {string} encryptedAESKey - AES key encrypted with server's public RSA key
+//  * @param {string} encryptedIV - IV encrypted with server's public RSA key
+//  * @param {string} payload - Encrypted payload
+//  * @returns {Promise<string>} Decrypted payload
+//  */
+//  function decryptResponseForClient(encryptedAESKey, encryptedIV, payload) {
+//     console.log('Entered here');
+//     try {
+//         const aesKey = decryptWithRSA(encryptedAESKey, serverPrivateKey);
+//         const iv = decryptWithRSA(encryptedIV, serverPrivateKey);
+//         const decryptedPayload = decryptWithAES(payload, aesKey, iv);
 
-        console.log('Decrypted Payload:', decryptedPayload);
-        return decryptedPayload;
-    } catch (error) {
-        console.error('Error fetching or decrypting data:', error.message);
-    }
-}
+//         console.log('Decrypted Payload:', decryptedPayload);
+//         return decryptedPayload;
+//     } catch (error) {
+//         console.error('Error fetching or decrypting data:', error.message);
+//     }
+// }
 
 
 
@@ -123,8 +144,8 @@ module.exports = {
     decryptWithAES,
     encryptWithRSA,
     decryptWithRSA,
-    encryptPayloadForServerFromClient,
+    // encryptPayloadForServerFromClient,
     decryptPayloadForServer,
     encryptResponseForClientFromServer,
-    decryptResponseForClient,
+    // decryptResponseForClient,
 };

@@ -7,6 +7,6 @@ const API_BASE_URL = 'http://localhost:4000';
 export const getClientPublicKey = () => axios.get(`${API_BASE_URL}/client-public-key`);
 
 // export const encryptForServer = (text) =>
-//     axios.get(`${API_BASE_URL}/encryption/encryptPayloadForServerFromClient`, { params: { text } });
+//     axios.get(`${API_BASE_URL}/encryption/encryptForServer`, { params: { text } });
 
 

@@ -1,14 +1,14 @@
 const express = require('express');
 const {
     generateAESKeyAndIV,
-    encryptWithAES,
-    decryptWithAES,
-    encryptWithRSA,
-    decryptWithRSA,
-    // encryptPayloadForServerFromClient,
+    aesEncrypt,
+    aesDecrypt,
+    rsaEncrypt,
+    rsaDecrypt,
+    // encryptForServer,
     decryptPayloadForServer,
-    encryptResponseForClientFromServer,
-    decryptResponseForClient,
+    encryptForClient,
+    decryptServerResponse,
     encryptDecryptClientRequest,
 } = require('../controllers/encryption/encryptionController');
 const { clientPrivateKey, clientPublicKey } = require('../utils/keys');
@@ -39,17 +39,17 @@ router.post('/decryptPayloadForServer', async (req, res) => {
     }
 });
 
-// router.get('/encryptPayloadForServerFromClient', async (req, res) => {
+// router.get('/encryptForServer', async (req, res) => {
 //     const { text } = req.query; 
 //     if (!text) {
 //         return res.status(400).json({ error: 'Text parameter is required' });
 //     }
 
 //     try {
-//         const response = await encryptPayloadForServerFromClient(text);
+//         const response = await encryptForServer(text);
 //         res.json({ success: true, response });
 //     } catch (error) {
-//         console.error('Error in /encryptPayloadForServerFromClient route:', error.message);
+//         console.error('Error in /encryptForServer route:', error.message);
 //         res.status(500).json({ error: 'Encryption test failed', details: error.message });
 //     }
 // });
@@ -57,30 +57,30 @@ router.post('/decryptPayloadForServer', async (req, res) => {
 
 
 
-router.get('/encryptResponseForClientFromServer', async (req, res) => {
+router.get('/encryptForClient', async (req, res) => {
     const { data } = req.query;
     if (!data) {
         return res.status(400).json({ error: 'Data parameter is required' });
     }
 
     try {
-        const response = await encryptResponseForClientFromServer(data);
+        const response = await encryptForClient(data);
         res.json({ success: true, response });
     } catch (error) {
-        console.error('Error in /encryptResponseForClientFromServer route:', error.message);
+        console.error('Error in /encryptForClient route:', error.message);
         res.status(500).json({ error: 'Encryption failed', details: error.message });
     }
 });
 
-router.post('/decryptResponseForClient', (req, res) => {
+router.post('/decryptServerResponse', (req, res) => {
     try {
         const { encryptedAESKey, encryptedIV, payload } = req.body;
 
-        const decryptedPayload = decryptResponseForClient(encryptedAESKey, encryptedIV, payload);
+        const decryptedPayload = decryptServerResponse(encryptedAESKey, encryptedIV, payload);
 
         res.json({ decryptedPayload });
     } catch (error) {
-        console.error('Error in /decryptResponseForClient route:', error.message);
+        console.error('Error in /decryptServerResponse route:', error.message);
         res.status(500).json({ error: 'Decryption failed', details: error.message });
     }
 });

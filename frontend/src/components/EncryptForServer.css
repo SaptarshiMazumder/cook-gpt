@@ -1,0 +1,79 @@
+/* Container styling */
+.encrypt-container {
+    padding: 20px;
+    max-width: 600px;
+    margin: 50px auto;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #f7f9fc;
+    border: 1px solid #e1e4e8;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Header styling */
+.encrypt-header {
+    margin-bottom: 20px;
+    font-size: 24px;
+    color: #333;
+}
+
+/* Input styling */
+.encrypt-input {
+    width: 80%;
+    padding: 10px;
+    margin: 10px 0;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.encrypt-input:focus {
+    border-color: #007bff;
+}
+
+/* Button styling */
+.encrypt-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.encrypt-button:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+.encrypt-button:hover:not(:disabled) {
+    background-color: #0056b3;
+}
+
+/* Error message styling */
+.encrypt-error {
+    color: #d9534f;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+/* Response styling */
+.encrypt-response {
+    margin-top: 20px;
+    text-align: left;
+    background-color: #f1f3f5;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #e1e4e8;
+    overflow-x: auto;
+}
+
+.encrypt-response h3 {
+    margin-bottom: 10px;
+    color: #333;
+}

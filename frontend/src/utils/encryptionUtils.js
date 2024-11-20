@@ -16,7 +16,7 @@ function generateAESKeyAndIV() {
 
 // Encryption Functions
 // AES Encryption
-function encryptWithAES(data, key, iv) {
+function aesEncrypt(data, key, iv) {
     const encrypted = CryptoJS.AES.encrypt(data, CryptoJS.enc.Base64.parse(key), {
         iv: CryptoJS.enc.Base64.parse(iv),
         mode: CryptoJS.mode.CBC,
@@ -26,7 +26,7 @@ function encryptWithAES(data, key, iv) {
 }
 
 // RSA Encryption
-function encryptWithRSA(data, publicKeyPem) {
+function rsaEncrypt(data, publicKeyPem) {
     const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
     const encrypted = publicKey.encrypt(data, 'RSAES-PKCS1-V1_5');
     return forge.util.encode64(encrypted); // Return Base64-encoded encrypted data
@@ -40,14 +40,14 @@ export async function encryptForServer(text) {
         const { key: aesKey, iv } = generateAESKeyAndIV();
 
         // Step 2: Encrypt the payload with AES
-        const encryptedPayload = encryptWithAES(text, aesKey, iv);
+        const encryptedPayload = aesEncrypt(text, aesKey, iv);
 
         // Step 3: Get the server's public RSA key
         const { data: publicKeyResponse } = await axios.get(`${API_BASE_URL}/encryption/client-public-key`);
         const publicKey = publicKeyResponse.clientPublicKey;
         // Step 4: Encrypt the AES Key and IV with RSA
-        const encryptedAESKey = encryptWithRSA(aesKey, publicKey);
-        const encryptedIV = encryptWithRSA(iv, publicKey);
+        const encryptedAESKey = rsaEncrypt(aesKey, publicKey);
+        const encryptedIV = rsaEncrypt(iv, publicKey);
 
         // Step 5: Send encrypted data to the server
         const response = await axios.post(`${API_BASE_URL}/encryption/decryptPayloadForServer`, {
@@ -68,7 +68,7 @@ export async function encryptForServer(text) {
 
 //Decryption Functions
 // RSA Decrypt Function
-export function decryptWithRSA(encryptedData, privateKey) {
+export function rsaDecrypt(encryptedData, privateKey) {
     try{
         if (!encryptedData || typeof encryptedData !== 'string') {
             throw new Error('Invalid input: encryptedData must be a Base64-encoded string');
@@ -89,7 +89,7 @@ export function decryptWithRSA(encryptedData, privateKey) {
 }
 
 // AES Decrypt Function
-export function decryptWithAES(encryptedData, aesKey, iv) {
+export function aesDecrypt(encryptedData, aesKey, iv) {
     if (!encryptedData || !aesKey || !iv) {
         throw new Error('Invalid input: All parameters (encryptedData, aesKey, iv) are required');
     }
@@ -117,7 +117,7 @@ export function decryptWithAES(encryptedData, aesKey, iv) {
 }
 
 // Combine RSA and AES Decryption
-export function decryptResponseForClient(encryptedAESKey, encryptedIV, encryptedPayload, privateKey) {
+export function decryptServerResponse(encryptedAESKey, encryptedIV, encryptedPayload, privateKey) {
     console.log('encryptedAESKey:', encryptedAESKey);
     console.log('encryptedIV:', encryptedIV);
     console.log('encryptedPayload:', encryptedPayload);
@@ -127,9 +127,9 @@ export function decryptResponseForClient(encryptedAESKey, encryptedIV, encrypted
     }
 
     try {
-        const aesKey = decryptWithRSA(encryptedAESKey, privateKey);
-        const iv = decryptWithRSA(encryptedIV, privateKey);
-        const decryptedPayload = decryptWithAES(encryptedPayload, aesKey, iv);
+        const aesKey = rsaDecrypt(encryptedAESKey, privateKey);
+        const iv = rsaDecrypt(encryptedIV, privateKey);
+        const decryptedPayload = aesDecrypt(encryptedPayload, aesKey, iv);
 
         console.log('Decrypted Payload:', decryptedPayload);
         return decryptedPayload;

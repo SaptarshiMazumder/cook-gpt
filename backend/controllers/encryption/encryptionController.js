@@ -1,5 +1,5 @@
-const { encryptWithAES, decryptWithAES } = require('./aes');
-const { encryptWithRSA, decryptWithRSA } = require('./rsa');
+const { aesEncrypt, aesDecrypt } = require('./aes');
+const { rsaEncrypt, rsaDecrypt } = require('./rsa');
 const crypto = require('crypto');
 const axios = require('axios'); 
 const { clientPrivateKey } = require('../../utils/keys');
@@ -22,7 +22,7 @@ function generateAESKeyAndIV() {
 }
 
 
-// async function encryptPayloadForServerFromClient(
+// async function encryptForServer(
 //     text, 
 //     url = 'http://localhost:4000/encryption/decryptPayloadForServer'
 // ) {
@@ -30,12 +30,12 @@ function generateAESKeyAndIV() {
         
 //         const { key: aesKey, iv } = generateAESKeyAndIV();
        
-//         const encryptedPayload = encryptWithAES(text, aesKey, iv);
+//         const encryptedPayload = aesEncrypt(text, aesKey, iv);
 //         const { data: publicKeyResponse } = await axios.get('http://localhost:4000/encryption/client-public-key');
 //         const publicKey = publicKeyResponse.clientPublicKey;
 
-//         const encryptedAESKey = encryptWithRSA(aesKey, publicKey);
-//         const encryptedIV = encryptWithRSA(iv, publicKey);
+//         const encryptedAESKey = rsaEncrypt(aesKey, publicKey);
+//         const encryptedIV = rsaEncrypt(iv, publicKey);
 //         const response = await axios.post(url, {
 //             encryptedAESKey,
 //             encryptedIV,
@@ -59,15 +59,15 @@ async function decryptPayloadForServer(encryptedAESKey, encryptedIV, payload) {
         console.log('Payload:', payload);
         console.log('------------------------------------------');
 
-        const aesKey = decryptWithRSA(encryptedAESKey, clientPrivateKey);
-        const iv = decryptWithRSA(encryptedIV, clientPrivateKey);
-        const decryptedPayload = decryptWithAES(payload, aesKey, iv);
+        const aesKey = rsaDecrypt(encryptedAESKey, clientPrivateKey);
+        const iv = rsaDecrypt(encryptedIV, clientPrivateKey);
+        const decryptedPayload = aesDecrypt(payload, aesKey, iv);
         
         //Do something with the data here ->
         const modifiedPayload = `${decryptedPayload} - After doing some operation, sending it to client`;
         console.log('Modified Payload:', modifiedPayload);
 
-        const encryptedDecryptedResponseForClient = await encryptResponseForClientFromServer(modifiedPayload);
+        const encryptedDecryptedResponseForClient = await encryptForClient(modifiedPayload);
         
         return encryptedDecryptedResponseForClient;
         // return decryptedPayload;
@@ -78,21 +78,21 @@ async function decryptPayloadForServer(encryptedAESKey, encryptedIV, payload) {
 }
 
 
-async function encryptResponseForClientFromServer(data) {
-    // let url = 'http://localhost:4000/encryption/decryptResponseForClient';
+async function encryptForClient(data) {
+    // let url = 'http://localhost:4000/encryption/decryptServerResponse';
     try {
 
         // Step 1: Generate AES Key and IV
         const { key: aesKey, iv } = generateAESKeyAndIV();
 
         // Step 2: Encrypt the payload with AES
-        const encryptedPayload = encryptWithAES(data, aesKey, iv);
+        const encryptedPayload = aesEncrypt(data, aesKey, iv);
         const { data: publicKeyResponse } = await axios.get('http://localhost:4000/encryption/server-public-key');
         const publicKey = publicKeyResponse.serverPublicKey;
 
         // Step 3: Encrypt AES Key and IV with RSA
-        const encryptedAESKey = encryptWithRSA(aesKey, publicKey);
-        const encryptedIV = encryptWithRSA(iv, publicKey);
+        const encryptedAESKey = rsaEncrypt(aesKey, publicKey);
+        const encryptedIV = rsaEncrypt(iv, publicKey);
         console.log('Encrypted Payload:', encryptedPayload);
 
         // Step 5: Send back the encrypted response
@@ -121,12 +121,12 @@ async function encryptResponseForClientFromServer(data) {
 //  * @param {string} payload - Encrypted payload
 //  * @returns {Promise<string>} Decrypted payload
 //  */
-//  function decryptResponseForClient(encryptedAESKey, encryptedIV, payload) {
+//  function decryptServerResponse(encryptedAESKey, encryptedIV, payload) {
 //     console.log('Entered here');
 //     try {
-//         const aesKey = decryptWithRSA(encryptedAESKey, serverPrivateKey);
-//         const iv = decryptWithRSA(encryptedIV, serverPrivateKey);
-//         const decryptedPayload = decryptWithAES(payload, aesKey, iv);
+//         const aesKey = rsaDecrypt(encryptedAESKey, serverPrivateKey);
+//         const iv = rsaDecrypt(encryptedIV, serverPrivateKey);
+//         const decryptedPayload = aesDecrypt(payload, aesKey, iv);
 
 //         console.log('Decrypted Payload:', decryptedPayload);
 //         return decryptedPayload;
@@ -140,12 +140,12 @@ async function encryptResponseForClientFromServer(data) {
 
 module.exports = {
     generateAESKeyAndIV,
-    encryptWithAES,
-    decryptWithAES,
-    encryptWithRSA,
-    decryptWithRSA,
-    // encryptPayloadForServerFromClient,
+    aesEncrypt,
+    aesDecrypt,
+    rsaEncrypt,
+    rsaDecrypt,
+    // encryptForServer,
     decryptPayloadForServer,
-    encryptResponseForClientFromServer,
-    // decryptResponseForClient,
+    encryptForClient,
+    // decryptServerResponse,
 };

@@ -1,5 +1,5 @@
 
-const privateKey = `
+export const privateKey = `
 -----BEGIN PRIVATE KEY-----
 MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCPGCPao4UIQqv+
 wC1XFjsHmA5EYcIFBOI1TzFvWyYgS42/weiikr8jtwlBRyQm3EuSjyguBAVhPBQI

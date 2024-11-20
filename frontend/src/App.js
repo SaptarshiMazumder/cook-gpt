@@ -2,13 +2,7 @@ import { useEffect, useState } from 'react';
 import EncryptForServer from './components/EncryptForServer';
 
 function App() {
-    const [message, setMessage] = useState('');
-
-    useEffect(() => {
-        fetch('http://localhost:4000')
-            .then((res) => res.json())
-            .then((data) => setMessage(data.message));
-    }, []);
+  
 
     return (
         <div>

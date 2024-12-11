@@ -1,8 +1,8 @@
 const OpenAI = require("openai");
 require('dotenv').config();
-
+const path = require('path');
 const  openaiApiKey  = process.env.OPENAI_API_KEY;
-
+const fs = require('fs');
 const client = new OpenAI({
     apiKey: openaiApiKey
 });
@@ -24,4 +24,23 @@ async function getChatCompletion(conversationHistory, adjustedPrompt) {
     }
 }
 
-module.exports = { getChatCompletion };
+async function outputAudioStream(input) {
+    const speechFile = path.resolve("./speech.mp3");
+    const mp3 = await client.audio.speech.create({
+        model: "tts-1",
+        voice: "nova",
+        // input: "Today is a wonderful day to build something people love!",
+        input: input,
+    });
+    const buffer = Buffer.from(await mp3.arrayBuffer());
+    await fs.promises.writeFile(speechFile, buffer);
+
+    // Return a readable stream from the saved file
+    return fs.createReadStream(speechFile);
+}
+
+async function getAudioStream() {
+    return await outputAudioStream();
+}
+
+module.exports = { getChatCompletion, outputAudioStream };

@@ -5,7 +5,6 @@ const {
     aesDecrypt,
     rsaEncrypt,
     rsaDecrypt,
-    // encryptForServer,
     decryptPayloadForServer,
     encryptForClient,
     decryptServerResponse,
@@ -26,33 +25,18 @@ router.get('/server-public-key', (req, res) => {
 
 
 
-router.post('/decryptPayloadForServer', async (req, res) => {
+router.post('/submit', async (req, res) => {
     try {
         const { encryptedAESKey, encryptedIV, payload } = req.body;
 
-        const decryptedPayload = await decryptPayloadForServer(encryptedAESKey, encryptedIV, payload);
+        const encryptedResponse = await decryptPayloadForServer(encryptedAESKey, encryptedIV, payload);
 
-        res.json({ decryptedPayload });
+        res.json({ encryptedResponse });
     } catch (error) {
         console.error('Error in /decryptPayloadForServer route:', error.message);
         res.status(500).json({ error: 'Decryption failed', details: error.message });
     }
 });
-
-// router.get('/encryptForServer', async (req, res) => {
-//     const { text } = req.query; 
-//     if (!text) {
-//         return res.status(400).json({ error: 'Text parameter is required' });
-//     }
-
-//     try {
-//         const response = await encryptForServer(text);
-//         res.json({ success: true, response });
-//     } catch (error) {
-//         console.error('Error in /encryptForServer route:', error.message);
-//         res.status(500).json({ error: 'Encryption test failed', details: error.message });
-//     }
-// });
 
 
 

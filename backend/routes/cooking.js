@@ -1,5 +1,5 @@
 const express = require('express');
-const { handleUserPrompt } = require('../utils/conversation');
+const { handleUserPrompt, getAudioStream } = require('../utils/conversation');
 
 const router = express.Router();
 
@@ -28,5 +28,26 @@ router.get('/prompt', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+router.post('/audio', async (req, res) => {
+    try {
+        // Get text input from request body
+        let { text } = req.body;
+
+        if (!text || text.trim() === "") {
+            text = "Hey, sorry, some message"; // Default message
+        }
+
+        const audioStream = await getAudioStream(text);
+
+        // Set headers to serve audio correctly
+        res.setHeader('Content-Type', 'audio/mpeg');
+        audioStream.pipe(res);
+    } catch (error) {
+        console.error("Error serving audio stream:", error);
+        res.status(500).send("Failed to stream audio.");
+    }
+});
+
 
 module.exports = router;

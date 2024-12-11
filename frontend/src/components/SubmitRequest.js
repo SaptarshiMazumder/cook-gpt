@@ -1,19 +1,17 @@
 import React, { useState, useCallback } from 'react';
 // import { encryptForServer } from '../utils/api';
-import { encryptForServer } from '../utils/encryptionUtils';
-import { privateKey } from '../utils/keys'; // Import RSA private key
-import { decryptServerResponse } from '../utils/encryptionUtils';
-import './EncryptForServer.css'; // Import CSS styles
+import {  submitRequest } from '../utils/securePayload';
+// import './EncryptForServer.css'; // Import CSS styles
 
 
 
-function EncryptForServer() {
+function SubmitRequest() {
     const [text, setText] = useState('');
     const [response, setResponse] = useState(null);
-    const [error, setError] = useState('');
+    const [error, setError] = useState('')
     const [loading, setLoading] = useState(false);
 
-    const handleEncrypt = useCallback(async () => {
+    const submitRequest = useCallback(async () => {
         if (!text.trim()) {
             setError('Please enter text to encrypt.');
             return;
@@ -24,17 +22,10 @@ function EncryptForServer() {
         setLoading(true);
 
         try {
-            const res = await encryptForServer(text); // Encrypt data for server
-            console.log('Encrypted Payload:', res.decryptedPayload);
-
-            const encryptedPayload = res.decryptedPayload;
-            const result = decryptServerResponse(
-                encryptedPayload.encryptedAESKey,
-                encryptedPayload.encryptedIV,
-                encryptedPayload.payload,
-                privateKey
-            );
-            setResponse(result); // Decrypt response from the server
+            const res = await submitRequest(text); // Encrypt data for server
+            console.log(res)
+            
+            setResponse(res); // Decrypt response from the server
         } catch (error) {
             console.error('Error encrypting for server:', error.message);
             setError('An error occurred during encryption. Please try again.');
@@ -53,7 +44,7 @@ function EncryptForServer() {
                 onChange={(e) => setText(e.target.value)}
                 className="encrypt-input"
             />
-            <button onClick={handleEncrypt} className="encrypt-button" disabled={loading}>
+            <button onClick={submitRequest} className="encrypt-button" disabled={loading}>
                 {loading ? 'Processing...' : 'Encrypt'}
             </button>
             {error && <p className="encrypt-error">{error}</p>}
@@ -67,4 +58,4 @@ function EncryptForServer() {
     );
 }
 
-export default EncryptForServer;
+export default SubmitRequest;

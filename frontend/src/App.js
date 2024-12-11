@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import EncryptForServer from './components/EncryptForServer';
+import SubmitRequest from './components/SubmitRequest';
 import React from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
@@ -9,6 +9,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AuthSuccess from './components/AuthSuccess';
 import Dashboard from './components/Dashboard';
 import PrivateRoute from './components/PrivateRoute';
+import AudioGenerator from './components/AudioGenerator';
 function App() {
     return (
         <Router>
@@ -16,7 +17,7 @@ function App() {
             <div>
                 <h1>Browser Frontend</h1>
                 <h1>Encryption/Decryption Demo</h1>
-                <EncryptForServer />
+                <SubmitRequest />
                 <LoginWithGoogle />
                 {/* <GoogleLogin onSuccess={handleLogin} onError={() => console.error('Login Failed')} /> */}
 
@@ -24,6 +25,7 @@ function App() {
             <Routes>
                 <Route path="/" element={<LoginWithGoogle />} />
                 <Route path="/auth-success" element={<AuthSuccess />} />
+                <Route path="/audio" element={<AudioGenerator />} />
                 {/* Protected Routes */}
                 <Route
                     path="/dashboard"

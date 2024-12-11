@@ -2,7 +2,7 @@ import JSEncrypt from 'jsencrypt';
 import CryptoJS from 'crypto-js';
 import forge from 'node-forge';
 import axios from 'axios';
-
+import { privateKey } from './keys';
 
 const API_BASE_URL = 'http://localhost:4000';
 
@@ -32,32 +32,60 @@ function rsaEncrypt(data, publicKeyPem) {
     return forge.util.encode64(encrypted); // Return Base64-encoded encrypted data
 }
 
+async function  encryptPayload(data){
+    const { key: aesKey, iv } = generateAESKeyAndIV();
 
-// Function to encrypt data for the server
-export async function encryptForServer(text) {
+    const encryptedPayload = aesEncrypt(data, aesKey, iv);
+    const { data: publicKeyResponse } = await axios.get(`${API_BASE_URL}/api/client-public-key`);
+    const publicKey = publicKeyResponse.clientPublicKey;
+
+    const encryptedAESKey = rsaEncrypt(aesKey, publicKey);
+    const encryptedIV = rsaEncrypt(iv, publicKey);
+    const response = await axios.post(`${API_BASE_URL}/api/submit`, {
+        encryptedAESKey,
+        encryptedIV,
+        payload: encryptedPayload,
+    });
+}
+
+export async function handleAPICall(url, data){
+    console.log(data)
+    //Step 1: Encrypt the data
+    const { key: aesKey, iv } = generateAESKeyAndIV();
+
+    const encryptedPayload = aesEncrypt(data, aesKey, iv);
+    const { data: publicKeyResponse } = await axios.get(`${API_BASE_URL}/api/client-public-key`);
+    const publicKey = publicKeyResponse.clientPublicKey;
+    const encryptedAESKey = rsaEncrypt(aesKey, publicKey);
+    const encryptedIV = rsaEncrypt(iv, publicKey);
+
+    //Step2: Send the encrypted data to the server
+    const response = await axios.post(`${API_BASE_URL}/api/submit`, {
+        encryptedAESKey,
+        encryptedIV,
+        payload: encryptedPayload,
+    });
+    
+    console.log('Server Response:', response.data);
+    return response;
+}
+
+
+export async function submitRequest(text){
+    
     try {
         // Step 1: Generate AES Key and IV
-        const { key: aesKey, iv } = generateAESKeyAndIV();
+        const response = await handleAPICall(``, text)
+        const encryptedPayload = response.data.encryptedResponse;
+        const result = decryptServerResponse(
+            encryptedPayload.encryptedAESKey,
+            encryptedPayload.encryptedIV,
+            encryptedPayload.payload,
+            privateKey
+        );
 
-        // Step 2: Encrypt the payload with AES
-        const encryptedPayload = aesEncrypt(text, aesKey, iv);
-
-        // Step 3: Get the server's public RSA key
-        const { data: publicKeyResponse } = await axios.get(`${API_BASE_URL}/encryption/client-public-key`);
-        const publicKey = publicKeyResponse.clientPublicKey;
-        // Step 4: Encrypt the AES Key and IV with RSA
-        const encryptedAESKey = rsaEncrypt(aesKey, publicKey);
-        const encryptedIV = rsaEncrypt(iv, publicKey);
-
-        // Step 5: Send encrypted data to the server
-        const response = await axios.post(`${API_BASE_URL}/encryption/decryptPayloadForServer`, {
-            encryptedAESKey,
-            encryptedIV,
-            payload: encryptedPayload,
-        });
-        console.log('Server Response:', response.data);
-
-        return response.data; // Server's response
+        // return response.data; // Server's response
+        return result;
     } catch (error) {
         console.error('Error encrypting data for server:', error.message);
         throw error;

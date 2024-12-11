@@ -1,5 +1,5 @@
 const { detectCookingRelated } = require('./compromise');
-const { getChatCompletion } = require('./openai');
+const { getChatCompletion, outputAudioStream } = require('./openai');
 
 let conversationHistory = [
     {
@@ -9,6 +9,7 @@ let conversationHistory = [
         1. A full list of ingredients with exact measurements.
         2. Numbered instructions for each step in the cooking process.
         3. Optional tips to improve the dish or avoid common mistakes.
+        4. The exact source or reference where the recipe is derived from, including the website, cookbook, or professional culinary source.
         Use only trusted culinary sources, and relate all answers to cooking even if the query seems unrelated.
         `
     }
@@ -28,7 +29,12 @@ async function handleUserPrompt(prompt) {
     // Add user query to conversation history
     conversationHistory.push({ role: "user", content: prompt });
 
-    const assistantResponse = await getChatCompletion(conversationHistory, adjustedPrompt);
+    let assistantResponse = await getChatCompletion(conversationHistory, adjustedPrompt);
+
+    // Check if the response includes a source for cooking-related prompts
+    if (isCookingRelated && !assistantResponse.toLowerCase().includes("source")) {
+        assistantResponse += "\n\n(Note: The source was not explicitly provided in the response. Please validate or request the source.)";
+    }
 
     // Add assistant's response to conversation history
     conversationHistory.push({ role: "assistant", content: assistantResponse });
@@ -36,4 +42,8 @@ async function handleUserPrompt(prompt) {
     return assistantResponse;
 }
 
-module.exports = { handleUserPrompt };
+async function getAudioStream(input){
+    return await outputAudioStream(input);
+}
+
+module.exports = { handleUserPrompt, getAudioStream };

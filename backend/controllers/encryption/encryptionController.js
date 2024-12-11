@@ -7,12 +7,6 @@ const { serverPrivateKey } = require('../../utils/keys');
 const CryptoJS = require('crypto-js');
 
 
-// function generateAESKeyAndIV() {
-//     return {
-//         key: crypto.randomBytes(32), 
-//         iv: crypto.randomBytes(16), 
-//     };
-// }
 
 function generateAESKeyAndIV() {
     return {
@@ -21,35 +15,17 @@ function generateAESKeyAndIV() {
     };
 }
 
-
-// async function encryptForServer(
-//     text, 
-//     url = 'http://localhost:4000/encryption/decryptPayloadForServer'
-// ) {
-//     try {
-        
-//         const { key: aesKey, iv } = generateAESKeyAndIV();
-       
-//         const encryptedPayload = aesEncrypt(text, aesKey, iv);
-//         const { data: publicKeyResponse } = await axios.get('http://localhost:4000/encryption/client-public-key');
-//         const publicKey = publicKeyResponse.clientPublicKey;
-
-//         const encryptedAESKey = rsaEncrypt(aesKey, publicKey);
-//         const encryptedIV = rsaEncrypt(iv, publicKey);
-//         const response = await axios.post(url, {
-//             encryptedAESKey,
-//             encryptedIV,
-//             payload: encryptedPayload,
-//         });
-
-
-//         return response.data;
-//     } catch (error) {
-//         console.error('Error in testEncryption:', error.message);
-//         throw error;
-//     }
-// }
-
+/**
+ * Decrypts an encrypted payload received by the server using RSA to decrypt the AES key and IV,
+ * followed by AES decryption of the payload. The decrypted payload is then modified and encrypted
+ * for the client before being returned.
+ * 
+ * @param {string} encryptedAESKey - The AES key encrypted with the client's RSA public key.
+ * @param {string} encryptedIV - The initialization vector (IV) encrypted with the client's RSA public key.
+ * @param {string} payload - The payload encrypted with AES.
+ * @returns {Promise<string>} The encrypted response for the client after processing the decrypted payload.
+ * @throws {Error} If decryption fails at any step.
+ */
 async function decryptPayloadForServer(encryptedAESKey, encryptedIV, payload) {
     console.log('Reached server, now trying to decrypt...');
     try {
@@ -64,7 +40,7 @@ async function decryptPayloadForServer(encryptedAESKey, encryptedIV, payload) {
         const decryptedPayload = aesDecrypt(payload, aesKey, iv);
         
         //Do something with the data here ->
-        const modifiedPayload = `${decryptedPayload} - After doing some operation, sending it to client`;
+        const modifiedPayload = `${decryptedPayload} - Performed some operation on the backend and sent to client`;
         console.log('Modified Payload:', modifiedPayload);
 
         const encryptedDecryptedResponseForClient = await encryptForClient(modifiedPayload);
@@ -144,7 +120,6 @@ module.exports = {
     aesDecrypt,
     rsaEncrypt,
     rsaDecrypt,
-    // encryptForServer,
     decryptPayloadForServer,
     encryptForClient,
     // decryptServerResponse,

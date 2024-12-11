@@ -49,5 +49,36 @@ router.post('/audio', async (req, res) => {
     }
 });
 
+// router.post('/audio', async (req, res) => {
+//     try {
+//         let { text } = req.body;
+
+//         if (!text || text.trim() === "") {
+//             text = "Hey, sorry, some message"; // Default message
+//         }
+
+//         console.log(`Generating audio for text: "${text}"`);
+
+//         // Generate and stream audio in chunks
+//         res.setHeader('Content-Type', 'audio/mpeg');
+//         const audioStream = await getAudioStream(text);
+
+//         // Pipe the streaming response directly to the client
+//         audioStream.pipe(res);
+
+//         audioStream.on('end', () => {
+//             console.log('Audio streaming completed.');
+//         });
+
+//         audioStream.on('error', (error) => {
+//             console.error('Error while streaming audio:', error);
+//             res.status(500).send('Error streaming audio.');
+//         });
+//     } catch (error) {
+//         console.error('Error generating audio:', error);
+//         res.status(500).send('Error generating audio.');
+//     }
+// });
+
 
 module.exports = router;

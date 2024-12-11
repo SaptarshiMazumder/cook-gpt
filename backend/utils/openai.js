@@ -39,6 +39,16 @@ async function outputAudioStream(input) {
     return fs.createReadStream(speechFile);
 }
 
+// async function outputAudioStream(input) {
+//     const mp3Stream = client.audio.speech.createStream({
+//         model: "tts-1",
+//         voice: "nova",
+//         input: input,
+//     });
+
+//     return mp3Stream; // Return the streaming audio data directly
+// }
+
 async function getAudioStream() {
     return await outputAudioStream();
 }

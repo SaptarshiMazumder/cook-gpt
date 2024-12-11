@@ -1,40 +1,115 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 const AudioGenerator = () => {
     const [text, setText] = useState('');
-    const [audioUrl, setAudioUrl] = useState(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const audioRef = useRef(null);
+    const mediaSourceRef = useRef(null);
+    const sourceBufferRef = useRef(null);
 
-    const handleGenerateAudio = async () => {
-        try {
-            // Send POST request to the backend
-            const response = await fetch('http://localhost:4000/cooking/audio', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ text }),
-            });
+    const cleanup = () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.src = '';
+        }
 
-            if (!response.ok) {
-                throw new Error('Failed to generate audio');
+        if (mediaSourceRef.current) {
+            const mediaSource = mediaSourceRef.current;
+            if (mediaSource.readyState === 'open') {
+                try {
+                    if (sourceBufferRef.current) {
+                        mediaSource.removeSourceBuffer(sourceBufferRef.current);
+                        sourceBufferRef.current = null;
+                    }
+                    mediaSource.endOfStream();
+                } catch (e) {
+                    console.warn('Error during MediaSource cleanup:', e);
+                }
             }
+            mediaSourceRef.current = null;
+        }
+    };
 
-            // Convert response to Blob and create URL
-            const audioBlob = await response.blob();
-            const url = URL.createObjectURL(audioBlob);
-            setAudioUrl(url);
+    const handleStreamAudio = async () => {
+        if (isPlaying) return;
 
-            // Auto-play the audio
-            const audio = new Audio(url);
+        setIsPlaying(true);
+        cleanup(); // Cleanup previous playback session
+
+        try {
+            const mediaSource = new MediaSource();
+            mediaSourceRef.current = mediaSource;
+
+            const audio = new Audio();
+            audioRef.current = audio;
+            audio.src = URL.createObjectURL(mediaSource);
             audio.play();
+
+            mediaSource.addEventListener('sourceopen', async () => {
+                const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+                sourceBufferRef.current = sourceBuffer;
+
+                const response = await fetch('http://localhost:4000/cooking/audio', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch audio stream');
+                }
+
+                const reader = response.body.getReader();
+
+                const appendChunk = async (chunk) => {
+                    return new Promise((resolve, reject) => {
+                        const onUpdateEnd = () => {
+                            sourceBuffer.removeEventListener('updateend', onUpdateEnd);
+                            resolve();
+                        };
+
+                        const onError = (e) => {
+                            sourceBuffer.removeEventListener('error', onError);
+                            reject(e);
+                        };
+
+                        sourceBuffer.addEventListener('updateend', onUpdateEnd);
+                        sourceBuffer.addEventListener('error', onError);
+
+                        sourceBuffer.appendBuffer(chunk);
+                    });
+                };
+
+                // Process and append audio chunks
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) {
+                        // Ensure all buffers are processed before ending the stream
+                        await new Promise((resolve) => {
+                            if (!sourceBuffer.updating) {
+                                resolve();
+                            } else {
+                                sourceBuffer.addEventListener('updateend', resolve, { once: true });
+                            }
+                        });
+
+                        mediaSource.endOfStream();
+                        break;
+                    }
+                    await appendChunk(value);
+                }
+            });
         } catch (error) {
-            console.error('Error generating audio:', error);
+            console.error('Error streaming audio:', error);
+            setIsPlaying(false);
         }
     };
 
     return (
         <div style={{ padding: '20px' }}>
-            <h1>Test</h1>
+            <h1>Audio Generator</h1>
             <textarea
                 rows="5"
                 cols="50"
@@ -44,16 +119,9 @@ const AudioGenerator = () => {
                 style={{ marginBottom: '10px' }}
             />
             <br />
-            <button onClick={handleGenerateAudio}>Generate Audio</button>
-            {audioUrl && (
-                <div>
-                    <h3>Generated Audio:</h3>
-                    <audio controls>
-                        <source src={audioUrl} type="audio/mpeg" />
-                        Your browser does not support the audio element.
-                    </audio>
-                </div>
-            )}
+            <button onClick={handleStreamAudio} disabled={isPlaying}>
+                {isPlaying ? 'Playing...' : 'Generate Audio'}
+            </button>
         </div>
     );
 };

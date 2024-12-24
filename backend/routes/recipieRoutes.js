@@ -1,5 +1,10 @@
 const express = require('express');
-const { handleUserPrompt, getAudioStream } = require('../utils/conversation');
+const { 
+    handleGeneralPrompt, 
+    getAudioStream, 
+    handleKeywordsPrompt,
+    handleItemsSearchPrompt,
+ } = require('../utils/conversation');
 
 const router = express.Router();
 const path = require('path');
@@ -8,6 +13,21 @@ const fs = require('fs'); // Import the fs module
 const recipiesList = require('../data/recipies.json')
 const recipesFilePath = path.join(__dirname, '../data/recipies.json');
 
+
+const natural = require("natural");
+
+//Helper functions
+// Function to generate tags using TF-IDF
+function generateTagsUsingTFIDF(allTexts, targetText) {
+    const tfidf = new natural.TfIdf();
+    allTexts.forEach(text => tfidf.addDocument(text));
+
+    const tags = [];
+    tfidf.listTerms(tfidf.documents.length - 1).slice(0, 5).forEach(item => {
+        tags.push(item.term);
+    });
+    return tags;
+}
 
 
 
@@ -24,12 +44,29 @@ router.get('/', async (req, res) => {
     }
 
     try {
-        const recipe = await handleUserPrompt(prompt);
+        const recipe = await handleGeneralPrompt(prompt);
         res.json({ recipe });
     } catch (error) {
         res.status(500).json({ error: error.prompt });
     }
 });
+
+router.post('/ingredients', async (req, res) => {
+    const { ingredients } = req.body;
+
+    if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
+        return res.status(400).json({ error: "Ingredients must be provided as a non-empty array." });
+    }
+
+    try {
+        const recipe = await handleKeywordsPrompt(ingredients);
+        res.json({ recipe });
+    } catch (error) {
+        console.error("Error generating recipe:", error);
+        res.status(500).json({ error: "Failed to generate recipe." });
+    }
+});
+
 
 // Add a new recipe
 router.post('/', async (req, res) => {
@@ -39,12 +76,18 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ error: "Name and description are required." });
     }
 
+    // Generate tags for the new recipe
+    const allDescriptions = recipiesList.map(recipe => recipe.description);
+    allDescriptions.push(description); // Add the new description to the corpus
+    const tags = generateTagsUsingTFIDF(allDescriptions, description);
+
     // Create new recipe
     const newRecipe = {
         id: recipiesList.length + 1, // Auto-increment ID
         name,
         description,
-        author: "anonymous" // Default author
+        author: "anonymous", // Default author
+        tags // Add generated tags
     };
 
     // Add to in-memory list
@@ -59,6 +102,21 @@ router.post('/', async (req, res) => {
         res.status(201).json({ message: "Recipe added successfully.", recipe: newRecipe });
     });
 });
+
+router.get('/search', async (req, res) => {
+    const { name } = req.query;
+
+    if (!name) {
+        return res.status(400).json({ error: "Recipe name is required." });
+    }
+
+    const response = await handleItemsSearchPrompt(name);
+    res.json({ recipes: response });
+    
+
+    
+});
+
 
 router.post('/audio', async (req, res) => {
     try {

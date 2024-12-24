@@ -15,8 +15,8 @@ function App() {
         <Router>
             
             <div>
-                <h1>Browser Frontend</h1>
-                <h1>Encryption/Decryption Demo</h1>
+                <h1></h1>
+                <h1></h1>
                 <SubmitRequest />
                 <LoginWithGoogle />
                 {/* <GoogleLogin onSuccess={handleLogin} onError={() => console.error('Login Failed')} /> */}

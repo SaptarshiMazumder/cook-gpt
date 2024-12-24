@@ -4,11 +4,12 @@ const OpenAI = require("openai");
 const compromise = require('compromise');
 const routes = require('./routes/routes');
 const encryptionRoutes = require('./routes/encryption');
+const recipieRoutes = require('./routes/cooking');
 const { testEncryption } = require('./controllers/encryption/encryptionController');
-const passport = require('passport');
+// const passport = require('passport');
 const authRoutes = require('./routes/authRoutes'); // Import routes
 require('dotenv').config();
-require('./utils/passport'); // Initialize Passport
+// require('./utils/passport'); // Initialize Passport
 
 
 
@@ -16,11 +17,13 @@ require('./utils/passport'); // Initialize Passport
 const app = express();
 app.use(express.json());
 app.use(cors());
-app.use(passport.initialize());
+// app.use(passport.initialize());
 
 app.use('/', routes);
 app.use('/auth', authRoutes);
 app.use('/api', encryptionRoutes);
+app.use('/recipies', recipieRoutes);
+
 // const openaiApiKey = process.env.OPENAI_API_KEY;
 
 const PORT = 4000;

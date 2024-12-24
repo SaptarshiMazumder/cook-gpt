@@ -36,7 +36,7 @@ function SubmitRequest() {
 
     return (
         <div className="encrypt-container">
-            <h2 className="encrypt-header">Encrypt for Server</h2>
+            <h2 className="encrypt-header">SUbmit</h2>
             <input
                 type="text"
                 placeholder="Enter text to encrypt"
@@ -50,7 +50,7 @@ function SubmitRequest() {
             {error && <p className="encrypt-error">{error}</p>}
             {response && (
                 <div className="encrypt-response">
-                    <h3>Decrypted Response:</h3>
+                    <h3>Response:</h3>
                     <pre>{JSON.stringify(response, null, 2)}</pre>
                 </div>
             )}

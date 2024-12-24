@@ -1,0 +1,20 @@
+[
+    {
+        "id": 1,
+        "name": "Tiramisu",
+        "description": "A classic Italian dessert made with mascarpone and coffee.",
+        "author": "cook-gpt"
+    },
+    {
+        "id": 2,
+        "name": "Egg Toast",
+        "description": "Quick and easy breakfast with eggs and toasted bread.",
+        "author": "cook-gpt"
+    },
+    {
+        "id": 3,
+        "name": "Pancakes",
+        "description": "Fluffy pancakes made with flour, eggs, and milk.",
+        "author": "cook-gpt"
+    }
+]

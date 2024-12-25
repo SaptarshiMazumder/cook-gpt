@@ -24,16 +24,33 @@ Use only trusted culinary sources, and relate all answers to cooking. Never gene
 ];
 
 function formatMarkdownResponse(response) {
-    // Replace OpenAI's markdown-like formatting with actual markdown
     return response
         .replace(/\\n\\n###/g, "\n\n###") // Fix markdown headers
-        .replace(/\\n\\n/g, "\n");           // Ensure double newlines are simplified
+        .replace(/\\n\\n/g, "<br /><br />") // Replace double newlines with two <br /> tags
+        .replace(/\\n/g, "<br />"); // Replace single newlines with a single <br /> tag
 }
 
 
-async function handleGeneralPrompt(prompt) {
-    const isCookingRelated = detectCookingRelated(prompt);
-    let adjustedPrompt = prompt;
+async function handleGeneralPrompt(keyword) {
+    const isCookingRelated = detectCookingRelated(keyword);
+    let adjustedPrompt = keyword;
+
+    let prompt = `You are a professional chef and culinary researcher tasked with retrieving a recipie for ${keyword}. Your output must adhere to the following rules:
+
+1. Use ONLY publicly available recipes from trusted sources, such as reputable websites or cookbooks.
+2. The recipe must match the source EXACTLY as it appears. Do not modify, reinterpret, or "inspire" recipes in any way.
+3. Include a direct link to the recipe or reference the cookbook with page numbers, if applicable.
+4. If no recipe exists with the specified name, explain why it cannot be found and suggest similar recipes that are publicly available with verifiable sources.
+
+Each recipe must include:
+- A full list of ingredients with exact measurements.
+- Numbered instructions for each step in the cooking process.
+- Optional tips to improve the dish or avoid common mistakes.
+- The exact source or reference where the recipe is derived from, including the website, cookbook, or professional culinary source.
+
+Use only trusted culinary sources, and relate all answers to cooking. Never generate hypothetical or AI-created recipes.
+
+`
 
     if (!isCookingRelated) {
         adjustedPrompt = `
@@ -45,7 +62,7 @@ async function handleGeneralPrompt(prompt) {
     // Add user query to conversation history
     conversationHistory.push({ role: "user", content: prompt });
 
-    let assistantResponse = await getChatCompletion(conversationHistory, adjustedPrompt);
+    let assistantResponse = await getChatCompletion(conversationHistory, prompt);
 
     // Check if the response includes a source for cooking-related prompts
     if (isCookingRelated && !assistantResponse.toLowerCase().includes("source")) {
@@ -139,6 +156,16 @@ async function handleItemsSearchPrompt(keyword){
     
 }
 
+async function handleMorePrompt(keyword){
+    const prompt = `More recipies for ${keyword}`  ;
+    conversationHistory.push({ role: "user", content: prompt });
+    let assistantResponse = await getChatCompletion(conversationHistory, prompt);
+    console.log('assistantResponse:', assistantResponse);
+    const formattedResponse = formatMarkdownResponse(assistantResponse);
+    conversationHistory.push({ role: "assistant", content: formattedResponse });
+    return assistantResponse;
+
+}
 
 async function getAudioStream(input){
     return await outputAudioStream(input);
@@ -149,4 +176,5 @@ module.exports = {
     getAudioStream, 
     handleKeywordsPrompt ,
     handleItemsSearchPrompt,
+    handleMorePrompt,
 };

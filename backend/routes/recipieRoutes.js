@@ -4,6 +4,7 @@ const {
     getAudioStream, 
     handleKeywordsPrompt,
     handleItemsSearchPrompt,
+    handleMorePrompt,
  } = require('../utils/conversation');
 
 const router = express.Router();
@@ -29,7 +30,37 @@ function generateTagsUsingTFIDF(allTexts, targetText) {
     return tags;
 }
 
+function parseResultToJSON(data) {
+    console.log('Parsing result to JSON...');
+    // console.log(data);
+    const lines = data.split("\n");
+    const recipes = [];
+    let currentRecipe = {};
 
+    for (const line of lines) {
+        // Extract the title
+        const titleMatch = line.match(/^\d+\.\s\*\*(.+?)\*\*/);
+        if (titleMatch) {
+            if (currentRecipe.title && currentRecipe.url) {
+                recipes.push(currentRecipe);
+            }
+            currentRecipe = { title: titleMatch[1], url: null };
+        }
+
+        // Extract the URL
+        const urlMatch = line.match(/\[.+?\]\((https?:\/\/[^\s]+)\)/);
+        if (urlMatch) {
+            currentRecipe.url = urlMatch[1];
+        }
+    }
+
+    // Add the last recipe if it exists
+    if (currentRecipe.title && currentRecipe.url) {
+        recipes.push(currentRecipe);
+    }
+    console.log('Parsed recipes:', recipes);
+    return recipes;
+}
 
 router.get('/all', async (req, res) =>{
     res.json(recipiesList)
@@ -50,6 +81,22 @@ router.get('/', async (req, res) => {
         res.status(500).json({ error: error.prompt });
     }
 });
+
+router.get('/more', async (req, res) => {
+    let { prompt } = req.query;
+    console.log(prompt);
+    if (!prompt) {
+        prompt = "Provide a step-by-step recipe for making French Toast.";
+    }
+    try {
+        const recipes = await handleMorePrompt(prompt);
+        res.send(recipes)
+        // res.json({ recipe });
+    } catch (error) {
+        res.status(500).json({ error: error.prompt });
+    }
+});
+
 
 router.post('/ingredients', async (req, res) => {
     const { ingredients } = req.body;
@@ -111,11 +158,14 @@ router.get('/search', async (req, res) => {
     }
 
     const response = await handleItemsSearchPrompt(name);
-    res.json({ recipes: response });
+    parseResultToJSON(response);
+    res.send(response);
+    // res.json({ data: JSON.stringify(response) });
     
 
     
 });
+
 
 
 router.post('/audio', async (req, res) => {

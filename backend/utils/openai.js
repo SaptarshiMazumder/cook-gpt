@@ -16,7 +16,7 @@ async function getChatCompletion(conversationHistory, adjustedPrompt) {
                 content: adjustedPrompt
             }),
         });
-        console.log("Conversation History:", conversationHistory);
+        // console.log("Conversation History:", conversationHistory);
         return chatCompletion.choices[0].message.content;
     } catch (error) {
         console.error("Error fetching chat completion:", error);

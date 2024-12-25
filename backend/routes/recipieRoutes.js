@@ -5,6 +5,7 @@ const {
     handleKeywordsPrompt,
     handleItemsSearchPrompt,
     handleMorePrompt,
+    handleSpecificQueryPrompt,
  } = require('../utils/conversation');
 
 const router = express.Router();
@@ -32,19 +33,24 @@ function generateTagsUsingTFIDF(allTexts, targetText) {
 
 function parseResultToJSON(data) {
     console.log('Parsing result to JSON...');
-    // console.log(data);
     const lines = data.split("\n");
     const recipes = [];
     let currentRecipe = {};
 
     for (const line of lines) {
-        // Extract the title
-        const titleMatch = line.match(/^\d+\.\s\*\*(.+?)\*\*/);
+        // Extract the index and title
+        const titleMatch = line.match(/^(\d+)\.\s\*\*(.+?)\*\*/);
         if (titleMatch) {
+            // Push the current recipe if it is complete
             if (currentRecipe.title && currentRecipe.url) {
                 recipes.push(currentRecipe);
             }
-            currentRecipe = { title: titleMatch[1], url: null };
+            // Start a new recipe with index and title
+            currentRecipe = { 
+                index: parseInt(titleMatch[1], 10), 
+                title: titleMatch[2], 
+                url: null 
+            };
         }
 
         // Extract the URL
@@ -61,6 +67,7 @@ function parseResultToJSON(data) {
     console.log('Parsed recipes:', recipes);
     return recipes;
 }
+
 
 router.get('/all', async (req, res) =>{
     res.json(recipiesList)
@@ -89,8 +96,10 @@ router.get('/more', async (req, res) => {
         prompt = "Provide a step-by-step recipe for making French Toast.";
     }
     try {
-        const recipes = await handleMorePrompt(prompt);
-        res.send(recipes)
+        const response = await handleMorePrompt(prompt);
+        const parsedResponse = parseResultToJSON(response);
+
+        res.send(parsedResponse)
         // res.json({ recipe });
     } catch (error) {
         res.status(500).json({ error: error.prompt });
@@ -158,14 +167,26 @@ router.get('/search', async (req, res) => {
     }
 
     const response = await handleItemsSearchPrompt(name);
-    parseResultToJSON(response);
-    res.send(response);
+    const parsedResponse = parseResultToJSON(response);
+    res.send(parsedResponse);
     // res.json({ data: JSON.stringify(response) });
     
 
     
 });
 
+router.post('/search/item', async(req, res)=>{
+    const { title, url } = req.body;
+    // Validate input
+    if (!title || !url) {
+        return res.status(400).json({ error: "Both title and url are required." });
+    }
+
+    const response = await handleSpecificQueryPrompt(title, url);
+    res.send(response);
+
+
+})
 
 
 router.post('/audio', async (req, res) => {

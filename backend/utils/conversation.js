@@ -167,6 +167,39 @@ async function handleMorePrompt(keyword){
 
 }
 
+async function handleSpecificQueryPrompt(title, url){
+    const prompt = `
+You are a professional chef and culinary researcher tasked with retrieving an exact recipe from a specified source. The rules are as follows:
+
+1. Use ONLY the provided URL to retrieve the recipe. Do not generate or "inspire" recipes.
+2. Include the recipe exactly as it appears in the source, with:
+   - Name of the recipe
+   - Full list of ingredients with exact measurements
+   - Numbered instructions for each step in the cooking process
+   - Any additional tips or notes provided in the source
+3. Provide the reference link at the end of the response.
+
+The recipe title is: "${title}".
+The recipe source URL is: ${url}.
+
+Respond with the full recipe and reference the provided URL.
+`;
+
+conversationHistory.push({ role: "user", content: prompt });
+let assistantResponse = await getChatCompletion(conversationHistory, prompt);
+if (!assistantResponse.toLowerCase().includes("source")) {
+    assistantResponse += "\n\n(Note: The source was not explicitly provided in the response. Please validate or request the source.)";
+}
+const formattedResponse = formatMarkdownResponse(assistantResponse);
+
+console.log('formattedResponse:', formattedResponse);
+ // Add assistant's response to conversation history
+ conversationHistory.push({ role: "assistant", content: formattedResponse });
+
+ return assistantResponse;
+
+}
+
 async function getAudioStream(input){
     return await outputAudioStream(input);
 }
@@ -177,4 +210,5 @@ module.exports = {
     handleKeywordsPrompt ,
     handleItemsSearchPrompt,
     handleMorePrompt,
+    handleSpecificQueryPrompt,
 };

@@ -1,27 +1,25 @@
-const client = require('../utils/elastic');
-
-async function createIndex() {
+async function createIndex(client) {
     try {
-        const response = await client.indices.create({
-            index: 'recipes',
-            body: {
-                mappings: {
-                    properties: {
-                        title: { type: 'text' },
-                        tags: { type: 'text' },
-                        description: { type: 'text' },
-                        ingredients: { type: 'text' },
-                    },
-                },
+      const response = await client.indices.create({
+        index: 'test_index', // name your index
+        body: {
+          // Optionally define mappings (schema) here
+          mappings: {
+            properties: {
+              title: { type: 'text' },
+              content: { type: 'text' },
             },
-        });
-        console.log('Index created:', response);
+          },
+        },
+      });
+      console.log('Index created:', response);
     } catch (error) {
-        if (error.meta.body.error.type === 'resource_already_exists_exception') {
-            console.log('Index already exists');
-        } else {
-            console.error('Error creating index:', error);
-        }
+      if (error?.meta?.body?.error?.type === 'resource_already_exists_exception') {
+        console.log('Index already exists. Skipping creation.');
+      } else {
+        console.error('Error creating index:', error);
+      }
     }
-}
-export default createIndex;
+  }
+
+module.exports = { createIndex };

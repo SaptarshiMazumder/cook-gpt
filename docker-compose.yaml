@@ -1,7 +1,6 @@
 version: "3.8"
 networks:
   cookie-monster:
-    driver: bridge
 services:
   backend:
     build: ./backend
@@ -10,6 +9,15 @@ services:
       - '4000:4000'
     networks:
       - cookie-monster
+    environment:
+     - NODE_ENV=local
+     - ES_HOST=elasticsearch
+     - NODE_PORT=3000
+     - ELASTIC_URL=http://elasticsearch:9200
+    links:
+        - elasticsearch
+    depends_on:
+        - elasticsearch
     # environment:
     #   - POSTGRES_HOST=192.168.1.7
     #   - POSTGRES_USER=postgres
@@ -30,23 +38,27 @@ services:
     stdin_open: true
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.0.1
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.0.1
     container_name: elasticsearch
     environment:
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - discovery.type=single-node
       - xpack.security.enabled=false
+    logging:
+      driver: none
     ports:
       - '9200:9200'
     networks:
       - cookie-monster
 
-  kibana:
-    image: docker.elastic.co/kibana/kibana:7.0.1
-    container_name: kibana
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    ports:
-      - '5601:5601'
-    networks:
-      - cookie-monster
+  # kibana:
+  #   image: docker.elastic.co/kibana/kibana:7.0.1
+  #   container_name: kibana
+  #   environment:
+  #     - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+  #   ports:
+  #     - '5601:5601'
+  #   networks:
+  #     - cookie-monster
 

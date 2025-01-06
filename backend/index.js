@@ -8,6 +8,7 @@ const recipieRoutes = require('./routes/recipieRoutes');
 const { testEncryption } = require('./controllers/encryption/encryptionController');
 // const passport = require('passport');
 const authRoutes = require('./routes/authRoutes'); // Import routes
+const dataRoutes = require('./routes/dataRoutes');
 require('dotenv').config();
 // require('./utils/passport'); // Initialize Passport
 
@@ -23,6 +24,7 @@ app.use('/', routes);
 app.use('/auth', authRoutes);
 app.use('/api', encryptionRoutes);
 app.use('/recipies', recipieRoutes);
+app.use('/index', dataRoutes);
 
 // const openaiApiKey = process.env.OPENAI_API_KEY;
 

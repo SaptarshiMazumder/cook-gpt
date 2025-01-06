@@ -32,7 +32,7 @@ exports.getAllDocuments = async (req, res) => {
   }
 };
 
-exports.insertDocument = async (req, res) => {
+exports.createDocument = async (req, res) => {
   try {
     const doc = req.body;
     const response = await client.index({
@@ -42,7 +42,7 @@ exports.insertDocument = async (req, res) => {
     await client.indices.refresh({ index: INDEX_NAME });
     return res.json({ message: 'Document inserted.', response });
   } catch (error) {
-    console.error('[searchController] insertDocument error:', error);
+    console.error('[searchController] createDocument error:', error);
     return res.status(500).json({ error: 'Failed to insert document.' });
   }
 };

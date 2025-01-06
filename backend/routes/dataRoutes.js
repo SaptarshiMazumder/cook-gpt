@@ -5,11 +5,11 @@ const router = express.Router();
 const {
   pingSearch,
   getAllDocuments,
-  insertDocument,
+  createDocument,
 } = require('../controllers/dataController');
 
 router.get('/ping', pingSearch);
 router.get('/all', getAllDocuments);
-router.post('/', insertDocument);
+router.post('/create', createDocument);
 
 module.exports = router;

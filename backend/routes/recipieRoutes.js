@@ -170,9 +170,6 @@ router.get('/search', async (req, res) => {
     const parsedResponse = parseResultToJSON(response);
     res.send(parsedResponse);
     // res.json({ data: JSON.stringify(response) });
-    
-
-    
 });
 
 router.post('/search/item', async(req, res)=>{
@@ -184,8 +181,6 @@ router.post('/search/item', async(req, res)=>{
 
     const response = await handleSpecificQueryPrompt(title, url);
     res.send(response);
-
-
 })
 
 

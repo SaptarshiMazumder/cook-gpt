@@ -25,7 +25,8 @@ services:
     links:
         - elasticsearch
     depends_on:
-        - elasticsearch
+      elasticsearch:
+        condition: service_healthy
     # environment:
     #   - POSTGRES_HOST=192.168.1.7
     #   - POSTGRES_USER=postgres
@@ -60,6 +61,11 @@ services:
     networks:
       cookie-monster:
         ipv4_address: "172.28.0.10"
+    healthcheck:
+      test: curl -s http://localhost:9200/_cluster/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.0.1

@@ -1,6 +1,6 @@
 const client = require('../utils/elastic');
 // Example index name
-const INDEX_NAME = 'test_index';
+const INDEX_NAME = 'recipies';
 
 exports.pingSearch = async (req, res) => {
   try {
@@ -149,10 +149,10 @@ exports.searchIndex = async (req, res) => {
 
 exports.createIndex = async (req, res) => {
   try {
-    const exists = await client.indices.exists({ index: 'recipes' });
+    const exists = await client.indices.exists({ index: INDEX_NAME });
     if (!exists) {
         const response = await client.indices.create({
-            index: 'recipes',
+            index: INDEX_NAME,
             body: {
                 mappings: {
                     properties: {

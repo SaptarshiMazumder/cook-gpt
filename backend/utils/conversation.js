@@ -133,7 +133,7 @@ async function handleItemsSearchPrompt(keyword){
     3. Each recipe in the list must include:
        - Name of the recipe
        - Full list of ingredients with exact measurements
-       - Numbered instructions for each step in the cooking process
+       - Full steps, as present in the source, unaltered, in full detail
        - Any additional tips or notes provided in the source
        - Source (link to the recipe or reference to the cookbook)
     4. Do not generate or "inspire" recipes. Use exact matches from trusted sources.
@@ -145,15 +145,11 @@ async function handleItemsSearchPrompt(keyword){
     [
         {
             "title": "Recipe Title",
-            "ingredients": [
-            "List of ingredients with quantities"
-            ],
-            "instructions": [
-            "Step-by-step cooking instructions"
-            ],
-            "tips": "Any additional tips or notes for this recipe",
-            "source": "Name of the source",
-            "link": "URL to the recipe"
+            "ingredients": [],
+            "instructions": [],
+            "tips": "",
+            "source": "",
+            "link": ""
         }
     ]
     Respond ONLY with the JSON array. Do not include any text before or after the JSON array.
@@ -179,7 +175,7 @@ async function handleItemsSearchPrompt(keyword){
 }
 
 async function handleMorePrompt(keyword){
-    const prompt = `More recipies for ${keyword}`  ;
+    const prompt = `More recipies for ${keyword}, in the exact same format as before`  ;
     conversationHistory.push({ role: "user", content: prompt });
     let assistantResponse = await getChatCompletion(conversationHistory, prompt);
     console.log('assistantResponse:', assistantResponse);

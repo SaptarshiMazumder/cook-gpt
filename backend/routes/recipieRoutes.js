@@ -126,9 +126,9 @@ router.get('/more', async (req, res) => {
     }
     try {
         const response = await handleMorePrompt(prompt);
-        const parsedResponse = parseResultToJSON(response);
+        // const parsedResponse = parseResultToJSON(response);
 
-        res.send(parsedResponse)
+        res.send(response)
         // res.json({ recipe });
     } catch (error) {
         res.status(500).json({ error: error.prompt });

@@ -127,15 +127,37 @@ async function handleItemsSearchPrompt(keyword){
     You are a professional chef and culinary researcher tasked with finding recipes based on specific names. Your output must adhere to the following rules:
 
     1. Use ONLY publicly available recipes from trusted sources, such as reputable websites or cookbooks.
-    2. Provide a list of recipes with the specified name or closely related names.
+    2. Provide a list of at least 4 recipes with the specified name or closely related names.
+    - If fewer than four exist, return only what's available.
+    - If no verifiable recipe is found, return an empty JSON array "[]"
     3. Each recipe in the list must include:
        - Name of the recipe
+       - Full list of ingredients with exact measurements
+       - Numbered instructions for each step in the cooking process
+       - Any additional tips or notes provided in the source
        - Source (link to the recipe or reference to the cookbook)
     4. Do not generate or "inspire" recipes. Use exact matches from trusted sources.
     5. If you can't find any matching recipies online, say so, or suggest similar ones which are available publicly with verifiable sources.
     The specified recipe name is: "${keyword}".
 
     Respond with a list of recipe names and their sources.
+    Ensure the output adheres to the following structure:
+    [
+        {
+            "title": "Recipe Title",
+            "ingredients": [
+            "List of ingredients with quantities"
+            ],
+            "instructions": [
+            "Step-by-step cooking instructions"
+            ],
+            "tips": "Any additional tips or notes for this recipe",
+            "source": "Name of the source",
+            "link": "URL to the recipe"
+        }
+    ]
+    Respond ONLY with the JSON array. Do not include any text before or after the JSON array.
+
     `;
 
     conversationHistory.push({ role: "user", content: prompt });
@@ -172,6 +194,7 @@ async function handleSpecificQueryPrompt(title, url){
 You are a professional chef and culinary researcher tasked with retrieving an exact recipe from a specified source. The rules are as follows:
 
 1. Use ONLY the provided URL to retrieve the recipe. Do not generate or "inspire" recipes.
+    Rephrase and rewrite the recipe in your own words, but don't change the content.
 2. Include the recipe exactly as it appears in the source, with:
    - Name of the recipe
    - Full list of ingredients with exact measurements

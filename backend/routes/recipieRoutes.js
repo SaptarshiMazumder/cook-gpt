@@ -17,6 +17,7 @@ const recipesFilePath = path.join(__dirname, '../data/recipies.json');
 
 
 const natural = require("natural");
+const client = require('../services/elasticsearch');
 
 //Helper functions
 // Function to generate tags using TF-IDF
@@ -65,6 +66,34 @@ function parseResultToJSON(data) {
         recipes.push(currentRecipe);
     }
     console.log('Parsed recipes:', recipes);
+    return recipes;
+}
+
+function parseResponseToJSON(rawText) {
+    const recipes = [];
+    const recipeSections = rawText.split("###").filter(section => section.trim() !== ""); // Split by recipe headings
+
+    recipeSections.forEach(section => {
+        const titleMatch = section.match(/^\s*\d+\.\s*(.+)$/m);
+        const sourceMatch = section.match(/- \*\*Source\*\*:\s*\[(.+)\]\((.+)\)/);
+        const ingredientsMatch = section.match(/- \*\*Ingredients\*\*:\n([\s\S]*?)(?=\n- \*\*Instructions\*\*:)/);
+        const instructionsMatch = section.match(/- \*\*Instructions\*\*:\n([\s\S]*?)(?=\n- \*\*Tips\*\*:|\n- \*\*Source\*\*:)/);
+        const tipsMatch = section.match(/- \*\*Tips\*\*:\s*(.+)/);
+
+        recipes.push({
+            title: titleMatch ? titleMatch[1].trim() : null,
+            source: sourceMatch ? sourceMatch[1].trim() : null,
+            link: sourceMatch ? sourceMatch[2].trim() : null,
+            ingredients: ingredientsMatch 
+                ? ingredientsMatch[1].trim().split("\n").map(item => item.replace(/^\s*-\s*/, '').trim()) 
+                : [],
+            instructions: instructionsMatch 
+                ? instructionsMatch[1].trim().split("\n").map(item => item.replace(/^\s*\d+\.\s*/, '').trim()) 
+                : [],
+            tips: tipsMatch ? tipsMatch[1].trim() : null,
+        });
+    });
+
     return recipes;
 }
 
@@ -167,12 +196,16 @@ router.get('/search', async (req, res) => {
     }
 
     const response = await handleItemsSearchPrompt(name);
-    const parsedResponse = parseResultToJSON(response);
-    res.send(parsedResponse);
+    // const parsedResponse = parseResultToJSON(response);
+    // const parsedResponse = parseResponseToJSON(response);
+
+    res.send(response);
     // res.json({ data: JSON.stringify(response) });
 });
 
 router.post('/search/item', async(req, res)=>{
+    const info = await client.info();
+    console.log('Elasticsearch Info:', info);
     const { title, url } = req.body;
     // Validate input
     if (!title || !url) {

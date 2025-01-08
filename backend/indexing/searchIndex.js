@@ -1,4 +1,4 @@
-const client = require('../utils/elastic');
+const client = require('../services/elasticsearch');
 const INDEX_NAME = 'recipes'; // Elasticsearch index name
 
 

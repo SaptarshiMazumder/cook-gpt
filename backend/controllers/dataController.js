@@ -1,4 +1,4 @@
-const client = require('../utils/elastic');
+const client = require('../services/elasticsearch');
 // Example index name
 const INDEX_NAME = 'recipies';
 
@@ -84,51 +84,57 @@ exports.createDocument = async (req, res) => {
   }
 };
 
+async function searchIndexInES (keyword, page, size) {
+  const query = {
+    index: INDEX_NAME,
+    body: {
+      query: {
+        bool: {
+          should: [
+            {
+              multi_match: {
+                query: keyword,
+                fields: ["title^3", "description", "ingredients"],
+                fuzziness: "AUTO",
+                type: "most_fields",
+              },
+            },
+            {
+              prefix: {
+                title: {
+                  value: keyword,
+                  boost: 2,
+                },
+              },
+            },
+          ],
+        },
+      },
+      highlight: {
+        fields: {
+          title: {},
+          description: {},
+        },
+      },
+      from: page * size,
+      size,
+    },
+  };
+
+  const response = await client.search(query);
+  return response;
+  
+}
+
 exports.searchIndex = async (req, res) => {
-  try {
+  
     const { keyword, page = 0, size = 10 } = req.body; // Keyword, pagination params
 
     if (!keyword || typeof keyword !== 'string') {
       return res.status(400).json({ error: 'A valid keyword must be provided.' });
     }
 
-    const query = {
-      index: INDEX_NAME,
-      body: {
-        query: {
-          bool: {
-            should: [
-              {
-                multi_match: {
-                  query: keyword,
-                  fields: ["title^3", "description", "ingredients"],
-                  fuzziness: "AUTO",
-                  type: "most_fields",
-                },
-              },
-              {
-                prefix: {
-                  title: {
-                    value: keyword,
-                    boost: 2,
-                  },
-                },
-              },
-            ],
-          },
-        },
-        highlight: {
-          fields: {
-            title: {},
-            description: {},
-          },
-        },
-        from: page * size,
-        size,
-      },
-    };
-
-    const response = await client.search(query);
+    const response = await searchIndexInES(keyword, page, size);
 
     return res.json({
       total: response.hits.total.value,
@@ -139,10 +145,7 @@ exports.searchIndex = async (req, res) => {
         highlights: hit.highlight,
       })),
     });
-  } catch (error) {
-    console.error('[searchController] searchRecipes error:', error);
-    return res.status(500).json({ error: 'Failed to search recipes.' });
-  }
+  
 };
 
 
@@ -174,3 +177,4 @@ exports.createIndex = async (req, res) => {
     console.error('Error creating recipe index:', error);
 }
 }
+

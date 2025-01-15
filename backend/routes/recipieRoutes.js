@@ -236,6 +236,51 @@ async function searchIndexInES (keyword, page, size) {
     
   }
 
+async function recipeExists(title, source) {
+    const result = await client.search({
+        index: INDEX_NAME,
+        body: {
+            query: {
+                bool: {
+                    must: [
+                        { match: { title } },
+                        { match: { source } }
+                    ]
+                }
+            }
+        }
+    });
+    return result.hits.total.value > 0;
+}
+async function saveResponsesToElasticsearch(recipes) {
+// Using bulk insert for efficiency
+    const bulkOps = [];
+
+    for (const recipe of recipes) {
+        // if (await recipeExists(recipe.title, recipe.source)) {
+        //     continue; // Skip duplicates
+        // }
+        // Prepare each recipe for bulk
+        bulkOps.push({ index: { _index: INDEX_NAME }});
+        bulkOps.push(recipe);  // The recipe document
+    }
+
+    if (bulkOps.length === 0) {
+        return [];
+    }
+
+    const bulkResponse = await client.bulk({ body: bulkOps });
+    if (bulkResponse.errors) {
+        console.error("Bulk insert encountered errors:", bulkResponse.items);
+    }
+
+    // Refresh index so docs are immediately searchable
+    await client.indices.refresh({ index: INDEX_NAME });
+
+    // Return the newly inserted docs, or you could return the full bulk response if you like
+    return recipes;
+}
+
 router.get('/search', async (req, res) => {
     const { name } = req.query;
 
@@ -251,6 +296,8 @@ router.get('/search', async (req, res) => {
         if (!esResponse.hits.hits.length) {
             console.log("no result found in es", esResponse);
             const openAIRes = await handleItemsSearchPrompt(name);
+            const savedResults = await saveResponsesToElasticsearch(recipes);
+
             return res.json({ source: 'OpenAI', data: openAIRes });
         }
 
@@ -262,6 +309,8 @@ router.get('/search', async (req, res) => {
          // 4. If top result is below threshold or not relevant, fallback
         if (topScore < threshold || !topTitle.toLowerCase().includes(name.toLowerCase())) {
             const openAIRes = await handleItemsSearchPrompt(name);
+            const savedResults = await saveResponsesToElasticsearch(openAIRes);
+
             return res.json({ source: 'OpenAI', data: openAIRes });
         }
 

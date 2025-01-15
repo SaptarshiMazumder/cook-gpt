@@ -1,5 +1,5 @@
 const { detectCookingRelated } = require('./compromise');
-const { getChatCompletion, outputAudioStream } = require('./openai');
+const { getChatCompletion, outputAudioStream, getChatCompletionWithoutHistory } = require('./openai');
 
 let conversationHistory = [
     {
@@ -124,40 +124,43 @@ Format the output as follows:
 
 async function handleItemsSearchPrompt(keyword){
     const prompt = `
-    You are a professional chef and culinary researcher tasked with finding recipes based on specific names. Your output must adhere to the following rules:
-
-    1. Use ONLY publicly available recipes from trusted sources, such as reputable websites or cookbooks.
-    2. Provide a list of at least 4 recipes with the specified name or closely related names.
-    - If fewer than four exist, return only what's available.
-    - If no verifiable recipe is found, return an empty JSON array "[]"
-    3. Each recipe in the list must include:
-       - Name of the recipe
-       - Full list of ingredients with exact measurements
-       - Full steps, as present in the source, unaltered, in full detail
-       - Any additional tips or notes provided in the source
-       - Source (link to the recipe or reference to the cookbook)
-    4. Do not generate or "inspire" recipes. Use exact matches from trusted sources.
-    5. If you can't find any matching recipies online, say so, or suggest similar ones which are available publicly with verifiable sources.
-    The specified recipe name is: "${keyword}".
-
-    Respond with a list of recipe names and their sources.
-    Ensure the output adheres to the following structure:
+    You are a professional chef and culinary researcher tasked with finding recipes. Your output must adhere to the following rules:
+    
+    1. Provide **exact and complete recipes** for "${keyword}" from trusted and publicly available sources (e.g., AllRecipes, Food Network, Bon Appétit).
+    2. Ensure that the response includes **exactly 4 recipes**. If fewer than 4 recipes exist, explicitly state that fewer recipes were found and return only the available recipes.
+    3. Each recipe must include:
+       - Name of the recipe.
+       - Complete and accurate list of ingredients with precise measurements.
+       - Full cooking instructions as present in the source, with **step-by-step clarity** and no summarization.
+       - Preparation time and difficulty level, if available.
+       - Additional tips or notes provided in the source.
+       - Source name and a link to the recipe.
+       - Relevant tags (e.g., cuisine type, category).
+    4. **Do not summarize** or omit details. Present the instructions exactly as written in the source.
+    5. Respond in JSON format, adhering to the following structure:
     [
         {
             "title": "Recipe Title",
-            "ingredients": [],
-            "instructions": [],
-            "tips": "",
-            "source": "",
-            "link": ""
+            "ingredients": ["Ingredient 1", "Ingredient 2", ...],
+            "instructions": ["Step 1", "Step 2", ...],
+            "preparationTime": "Time string",
+            "difficulty": "Difficulty level",
+            "tips": "Additional notes or tips",
+            "source": "Name of the source",
+            "link": "URL to the recipe",
+            "tags": ["Tag1", "Tag2", ...]
         }
     ]
-    Respond ONLY with the JSON array. Do not include any text before or after the JSON array.
-
+    
+    Respond ONLY with the JSON array. Do not include any text before or after the JSON.
     `;
+    
+
 
     conversationHistory.push({ role: "user", content: prompt });
-    let assistantResponse = await getChatCompletion(conversationHistory, prompt);
+    // let assistantResponse = await getChatCompletion(conversationHistory, prompt);
+    let assistantResponse = await getChatCompletionWithoutHistory(prompt);
+
     if (!assistantResponse.toLowerCase().includes("source")) {
         assistantResponse += "\n\n(Note: The source was not explicitly provided in the response. Please validate or request the source.)";
     }
@@ -167,7 +170,7 @@ async function handleItemsSearchPrompt(keyword){
 
 
     // Add assistant's response to conversation history
-    conversationHistory.push({ role: "assistant", content: formattedResponse });
+    // conversationHistory.push({ role: "assistant", content: formattedResponse });
 
     return assistantResponse;
 

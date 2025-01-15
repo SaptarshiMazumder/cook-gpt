@@ -18,6 +18,8 @@ const recipesFilePath = path.join(__dirname, '../data/recipies.json');
 
 const natural = require("natural");
 const client = require('../services/elasticsearch');
+const { searchIndex } = require('../controllers/dataController');
+const { searchIndexInElasticSearch } = require('../indexing/searchIndex');
 
 //Helper functions
 // Function to generate tags using TF-IDF
@@ -188,6 +190,52 @@ router.post('/', async (req, res) => {
     });
 });
 
+const INDEX_NAME = 'recipies';
+
+async function searchIndexInES (keyword, page, size) {
+    console.log(client);
+    console.log('Entered here');
+    const query = {
+      index: INDEX_NAME,
+      body: {
+        query: {
+          bool: {
+            should: [
+              {
+                multi_match: {
+                  query: keyword,
+                  fields: ["title^3", "description", "ingredients"],
+                  fuzziness: "AUTO",
+                  type: "most_fields",
+                },
+              },
+              {
+                prefix: {
+                  title: {
+                    value: keyword,
+                    boost: 2,
+                  },
+                },
+              },
+            ],
+          },
+        },
+        highlight: {
+          fields: {
+            title: {},
+            description: {},
+          },
+        },
+        from: page * size,
+        size,
+      },
+    };
+  
+    const response = await client.search(query);
+    return response;
+    
+  }
+
 router.get('/search', async (req, res) => {
     const { name } = req.query;
 
@@ -195,17 +243,68 @@ router.get('/search', async (req, res) => {
         return res.status(400).json({ error: "Recipe name is required." });
     }
 
-    const response = await handleItemsSearchPrompt(name);
-    // const parsedResponse = parseResultToJSON(response);
-    // const parsedResponse = parseResponseToJSON(response);
+    try {
+   
+        const esResponse = await searchIndexInES(name, 0, 10);
 
-    res.send(response);
-    // res.json({ data: JSON.stringify(response) });
+         // 2. If no hits, fallback
+        if (!esResponse.hits.hits.length) {
+            console.log("no result found in es", esResponse);
+            const openAIRes = await handleItemsSearchPrompt(name);
+            return res.json({ source: 'OpenAI', data: openAIRes });
+        }
+
+        const topScore = esResponse.hits.hits[0]._score;
+        const threshold = 2.0; // tune this
+        const topTitle = esResponse.hits.hits[0]._source.title || "";
+        console.log("Found something in es: ",esResponse);
+
+         // 4. If top result is below threshold or not relevant, fallback
+        if (topScore < threshold || !topTitle.toLowerCase().includes(name.toLowerCase())) {
+            const openAIRes = await handleItemsSearchPrompt(name);
+            return res.json({ source: 'OpenAI', data: openAIRes });
+        }
+
+        return res.json({
+            source: 'Elasticsearch',
+            total: esResponse.hits.total.value,
+            results: esResponse.hits.hits.map(hit => ({
+              id: hit._id,
+              score: hit._score,
+              ...hit._source
+            }))
+          });
+
+        // // Check if Elasticsearch returned any results
+        // if (esResponse && esResponse.hits && esResponse.hits.total.value > 0) {
+        //     // Elasticsearch has results, return them
+        //     return res.json({
+        //         total: esResponse.hits.total.value,
+        //         results: esResponse.hits.hits.map((hit) => ({
+        //             id: hit._id,
+        //             score: hit._score,
+        //             source: hit._source,
+        //             highlights: hit.highlight,
+        //         })),
+        //     });
+        // }
+        // If no data found, fetch from OpenAI API
+        const response = await handleItemsSearchPrompt(name);
+
+        // Optional: Parse and format the OpenAI response before sending
+        // const parsedResponse = parseResponseToJSON(response);
+        // return res.json({ data: parsedResponse });
+
+        res.send(response);
+    } catch (error) {
+        console.error('Error in /search:', error);
+        res.status(500).json({ error: 'Failed to process search request.' });
+    }
 });
 
+
 router.post('/search/item', async(req, res)=>{
-    const info = await client.info();
-    console.log('Elasticsearch Info:', info);
+
     const { title, url } = req.body;
     // Validate input
     if (!title || !url) {

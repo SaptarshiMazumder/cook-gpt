@@ -24,6 +24,30 @@ async function getChatCompletion(conversationHistory, adjustedPrompt) {
     }
 }
 
+async function getChatCompletionWithoutHistory(prompt) {
+    try {
+        const chatCompletion = await client.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+                {
+                    role: "system",
+                    content: `You are a professional chef providing
+                     detailed and accurate responses.`
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+        });
+        return chatCompletion.choices[0].message.content;
+    } catch (error) {
+        console.error("Error fetching chat completion:", error);
+        throw new Error("Failed to generate a response.");
+    }
+}
+
+
 async function outputAudioStream(input) {
     const speechFile = path.resolve("./speech.mp3");
     const mp3 = await client.audio.speech.create({
@@ -53,4 +77,4 @@ async function getAudioStream() {
     return await outputAudioStream();
 }
 
-module.exports = { getChatCompletion, outputAudioStream };
+module.exports = { getChatCompletion, outputAudioStream, getChatCompletionWithoutHistory };

@@ -80,44 +80,61 @@ Use only trusted culinary sources, and relate all answers to cooking. Never gene
 async function handleKeywordsPrompt(ingredients) {
     const ingredientList = ingredients.join(", ");
     const prompt = `
-You are a professional chef and culinary researcher tasked with finding recipes using only publicly available, verifiable sources. Your output must adhere to the following strict rules:
+    You are a professional chef and culinary researcher. The user provides an array of ingredients: ${ingredientList}. Your output must adhere to the following rules:
 
-1. Use ONLY publicly available recipes from trusted sources, such as reputable websites or cookbooks.
-2. The recipe must match the source EXACTLY as it appears. Do not modify, reinterpret, or "inspire" recipes in any way.
-3. Provide a direct link to the source or reference the cookbook with page numbers.
-4. If no matching recipe exists, analyze the provided ingredients and:
-   - Identify why no recipes match (e.g., uncommon combination, missing essential ingredients).
-   - Suggest realistic substitutions or additions to improve the feasibility of finding a recipe.
-5. If a recipe cannot be provided, clearly state: "No exact recipes found with the given ingredients."
+1. Provide up to four (4) **exact and complete** recipes that primarily use these ingredients, referencing only trusted, publicly available sources (e.g., AllRecipes, Food Network, Bon Appétit).
+   - If fewer than 4 recipes can be found, explicitly state that fewer were found and return only those that exist.
+2. Each recipe must include:
+   - "title": Name of the recipe
+   - "ingredients": A complete, accurate list of ingredients (with precise measurements) that matches the source’s recipe. Use the user’s ingredients as the core and add only common/minimal items (e.g., salt, oil) if needed.
+   - "instructions": The full cooking steps exactly as written in the source, with no summarization or omission.
+   - "preparationTime": The stated prep/cook time if available
+   - "difficulty": The difficulty level if provided by the source
+   - "tips": Any additional notes from the source
+   - "source": Name of the source (e.g., "Food Network")
+   - "link": The direct URL to the recipe
+   - "tags": An array of relevant tags (e.g., "Breakfast", "Vegan", etc.)
+3. If no recipe strictly matches the user’s ingredient list, propose minimal additional ingredients or similar recipes. However, do not include “outrageous” additions.
+4. If you truly cannot find any recipe, you may return fewer than four or even zero. In that case, explicitly mention that fewer were found.
+5. Respond **only** with a valid JSON array in the form:
 
-The provided ingredients are: ${ingredientList}.
+[
+  {
+    "title": "Recipe Title",
+    "ingredients": ["Ingredient 1", "Ingredient 2", ...],
+    "instructions": ["Step 1", "Step 2", ...],
+    "preparationTime": "Time string (if any)",
+    "difficulty": "Difficulty level (if any)",
+    "tips": "Notes or additional tips",
+    "source": "Source name",
+    "link": "https://...",
+    "tags": ["Tag1", "Tag2", ...]
+  }
+]
 
-Format the output as follows:
-- Name of Recipe
-- Ingredients (with exact measurements)
-- Numbered Instructions (exactly as described in the source)
-- Source (mandatory, with a direct link or reference)
-- Explanation (if no recipe is found)
-`;
+6. Do not use triple backticks, Markdown formatting, or any text outside the JSON array. Return only the array itself, with no preamble or postscript.
+
+    `;
 
 
 
     // Add to conversation history
     conversationHistory.push({ role: "user", content: prompt });
 
-    let assistantResponse = await getChatCompletion(conversationHistory, prompt);
+    // let assistantResponse = await getChatCompletion(conversationHistory, prompt);
+    let assistantResponse = await getChatCompletionWithoutHistory(prompt);
 
-    // Check for source inclusion
-    if (!assistantResponse.toLowerCase().includes("source")) {
-        assistantResponse += "\n\n(Note: The source was not explicitly provided in the response. Please validate or request the source.)";
-    }
+    // // Check for source inclusion
+    // if (!assistantResponse.toLowerCase().includes("source")) {
+    //     assistantResponse += "\n\n(Note: The source was not explicitly provided in the response. Please validate or request the source.)";
+    // }
 
-    const formattedResponse = formatMarkdownResponse(assistantResponse);
+    // const formattedResponse = formatMarkdownResponse(assistantResponse);
 
 
 
-    // Add assistant's response to conversation history
-    conversationHistory.push({ role: "assistant", content: formattedResponse });
+    // // Add assistant's response to conversation history
+    // conversationHistory.push({ role: "assistant", content: formattedResponse });
 
     return assistantResponse;
 }

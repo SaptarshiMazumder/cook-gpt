@@ -146,8 +146,8 @@ router.post('/ingredients', async (req, res) => {
     }
 
     try {
-        const recipe = await handleKeywordsPrompt(ingredients);
-        res.json({ recipe });
+        const response = await handleKeywordsPrompt(ingredients);
+        res.send( response );
     } catch (error) {
         console.error("Error generating recipe:", error);
         res.status(500).json({ error: "Failed to generate recipe." });

@@ -193,8 +193,7 @@ router.post('/', async (req, res) => {
 const INDEX_NAME = 'recipies';
 
 async function searchIndexInES (keyword, page, size) {
-    console.log(client);
-    console.log('Entered here');
+
     const query = {
       index: INDEX_NAME,
       body: {
@@ -232,119 +231,131 @@ async function searchIndexInES (keyword, page, size) {
     };
   
     const response = await client.search(query);
+    console.log('This is response from elastic search', response);
     return response;
     
   }
 
-async function recipeExists(title, source) {
-    const result = await client.search({
-        index: INDEX_NAME,
-        body: {
-            query: {
-                bool: {
-                    must: [
-                        { match: { title } },
-                        { match: { source } }
-                    ]
-                }
-            }
-        }
-    });
-    return result.hits.total.value > 0;
-}
-async function saveResponsesToElasticsearch(recipes) {
-// Using bulk insert for efficiency
+
+async function saveResponsesToElasticsearch(recipesArray) {
+    const jsonData = JSON.parse(recipesArray);
     const bulkOps = [];
 
-    for (const recipe of recipes) {
-        // if (await recipeExists(recipe.title, recipe.source)) {
-        //     continue; // Skip duplicates
-        // }
-        // Prepare each recipe for bulk
-        bulkOps.push({ index: { _index: INDEX_NAME }});
-        bulkOps.push(recipe);  // The recipe document
+    for (const recipe of jsonData) {
+      // OPTIONAL: Validate required fields
+      console.log(recipe);
+      console.log('--------------------');
+      if (
+        !recipe.title ||
+        !recipe.ingredients ||
+        !recipe.instructions ||
+        !recipe.source
+      ) {
+        console.warn(`Skipping recipe due to missing required fields: ${recipe.title || 'No title'}`);
+        continue;
+      }
+  
+      // Build the recipe doc (can add timestamps if needed)
+      const recipeDoc = {
+        title: recipe.title,
+        ingredients: recipe.ingredients,
+        instructions: recipe.instructions,
+        preparationTime: recipe.preparationTime || "",
+        difficulty: recipe.difficulty || "",
+        tips: recipe.tips || "",
+        source: recipe.source,
+        link: recipe.link || "",
+        tags: recipe.tags || [],
+        created_at: new Date().toISOString()
+      };
+  
+      // Bulk indexing format: action line, then document line
+      bulkOps.push({ index: { _index: INDEX_NAME } });
+      bulkOps.push(recipeDoc);
     }
-
+  
     if (bulkOps.length === 0) {
-        return [];
+      console.log("No valid recipes to index.");
+      return;
     }
-
-    const bulkResponse = await client.bulk({ body: bulkOps });
-    if (bulkResponse.errors) {
+  
+    try {
+      // Perform bulk insert
+      const bulkResponse = await client.bulk({ body: bulkOps });
+  
+      // Check for errors in bulk response
+      if (bulkResponse.errors) {
+        // Inspect and log each item to see which documents failed
         console.error("Bulk insert encountered errors:", bulkResponse.items);
+      } else {
+        console.log("Bulk insert successful!");
+      }
+  
+      // Refresh the index so new docs are searchable immediately
+      await client.indices.refresh({ index: INDEX_NAME });
+      console.log("Index refreshed. Documents are searchable now.");
+    } catch (error) {
+      console.error("Error performing bulk insert:", error);
     }
-
-    // Refresh index so docs are immediately searchable
-    await client.indices.refresh({ index: INDEX_NAME });
-
-    // Return the newly inserted docs, or you could return the full bulk response if you like
-    return recipes;
+  
 }
 
 router.get('/search', async (req, res) => {
     const { name } = req.query;
-
     if (!name) {
         return res.status(400).json({ error: "Recipe name is required." });
     }
-
     try {
-   
         const esResponse = await searchIndexInES(name, 0, 10);
-
          // 2. If no hits, fallback
         if (!esResponse.hits.hits.length) {
-            console.log("no result found in es", esResponse);
+            // console.log("no result found in es", esResponse);
             const openAIRes = await handleItemsSearchPrompt(name);
-            const savedResults = await saveResponsesToElasticsearch(recipes);
-
-            return res.json({ source: 'OpenAI', data: openAIRes });
+            await saveResponsesToElasticsearch(openAIRes);
+            return res.send(openAIRes);
+            // return res.json({ source: 'OpenAI', data: openAIRes });
         }
 
-        const topScore = esResponse.hits.hits[0]._score;
-        const threshold = 2.0; // tune this
-        const topTitle = esResponse.hits.hits[0]._source.title || "";
-        console.log("Found something in es: ",esResponse);
+        // 3) Check top 1 and top 2 results for relevance
+        const hits = esResponse.hits.hits;
+        console.log('Found hits in ES: \n', hits);
 
-         // 4. If top result is below threshold or not relevant, fallback
-        if (topScore < threshold || !topTitle.toLowerCase().includes(name.toLowerCase())) {
+        const topHit = hits[0];
+        const topScore = topHit._score || 0;
+        const topTitle = (topHit._source.title || "").toLowerCase();
+
+        // Basic word-by-word check to ensure all user query words appear in topTitle
+        // e.g., "egg toast" -> ["egg", "toast"]
+        const queryWords = name.toLowerCase().split(/\s+/).filter(Boolean);
+        const allWordsInTitle = queryWords.every(word => topTitle.includes(word));
+        
+        // This is our "good enough" condition:
+        // - topScore >= 0.5 (could be 0.8, 1.0, etc.)
+        // - topTitle includes all user query words
+        const isTopHitGoodEnough = (topScore >= 0.5) && allWordsInTitle;
+        
+        // If no data found, fetch from OpenAI API
+        if (!isTopHitGoodEnough) {
+            console.log("Falling back to OpenAI. Score or title check failed.", {
+                topScore,
+                allWordsInTitle
+              });        
+            // Fallback to OpenAI
             const openAIRes = await handleItemsSearchPrompt(name);
-            const savedResults = await saveResponsesToElasticsearch(openAIRes);
-
-            return res.json({ source: 'OpenAI', data: openAIRes });
+            await saveResponsesToElasticsearch(openAIRes);
+        
+            return res.send(openAIRes);
         }
 
         return res.json({
-            source: 'Elasticsearch',
             total: esResponse.hits.total.value,
-            results: esResponse.hits.hits.map(hit => ({
-              id: hit._id,
-              score: hit._score,
-              ...hit._source
+            results: hits.map(hit => ({
+                id: hit._id,
+                score: hit._score,
+                ...hit._source
             }))
-          });
+            });
 
-        // // Check if Elasticsearch returned any results
-        // if (esResponse && esResponse.hits && esResponse.hits.total.value > 0) {
-        //     // Elasticsearch has results, return them
-        //     return res.json({
-        //         total: esResponse.hits.total.value,
-        //         results: esResponse.hits.hits.map((hit) => ({
-        //             id: hit._id,
-        //             score: hit._score,
-        //             source: hit._source,
-        //             highlights: hit.highlight,
-        //         })),
-        //     });
-        // }
-        // If no data found, fetch from OpenAI API
-        const response = await handleItemsSearchPrompt(name);
-
-        // Optional: Parse and format the OpenAI response before sending
-        // const parsedResponse = parseResponseToJSON(response);
-        // return res.json({ data: parsedResponse });
-
-        res.send(response);
     } catch (error) {
         console.error('Error in /search:', error);
         res.status(500).json({ error: 'Failed to process search request.' });

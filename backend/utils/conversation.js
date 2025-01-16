@@ -137,7 +137,7 @@ async function handleItemsSearchPrompt(keyword){
        - Source name and a link to the recipe.
        - Relevant tags (e.g., cuisine type, category).
     4. **Do not summarize** or omit details. Present the instructions exactly as written in the source.
-    5. Respond in JSON format, adhering to the following structure:
+    5. Respond in this format, adhering to the following structure:
     [
         {
             "title": "Recipe Title",
@@ -152,7 +152,8 @@ async function handleItemsSearchPrompt(keyword){
         }
     ]
     
-    Respond ONLY with the JSON array. Do not include any text before or after the JSON.
+    Do not use triple backticks, Markdown, or any code fencing. 
+    Respond ONLY with the array. Do not include any text before or after the JSON.
     `;
     
 
@@ -161,12 +162,12 @@ async function handleItemsSearchPrompt(keyword){
     // let assistantResponse = await getChatCompletion(conversationHistory, prompt);
     let assistantResponse = await getChatCompletionWithoutHistory(prompt);
 
-    if (!assistantResponse.toLowerCase().includes("source")) {
-        assistantResponse += "\n\n(Note: The source was not explicitly provided in the response. Please validate or request the source.)";
-    }
-    const formattedResponse = formatMarkdownResponse(assistantResponse);
+    // if (!assistantResponse.toLowerCase().includes("source")) {
+    //     assistantResponse += "\n\n(Note: The source was not explicitly provided in the response. Please validate or request the source.)";
+    // }
+    // const formattedResponse = formatMarkdownResponse(assistantResponse);
 
-    console.log('formattedResponse:', formattedResponse);
+    console.log('openai Response:', assistantResponse);
 
 
     // Add assistant's response to conversation history

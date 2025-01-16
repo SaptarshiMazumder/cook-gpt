@@ -307,6 +307,8 @@ router.get('/search', async (req, res) => {
     }
     try {
         const esResponse = await searchIndexInES(name, 0, 10);
+        // const esResponse = await searchIndexInElasticSearch(client, name, 0, 10);
+
          // 2. If no hits, fallback
         if (!esResponse.hits.hits.length) {
             // console.log("no result found in es", esResponse);
@@ -332,7 +334,9 @@ router.get('/search', async (req, res) => {
         // This is our "good enough" condition:
         // - topScore >= 0.5 (could be 0.8, 1.0, etc.)
         // - topTitle includes all user query words
-        const isTopHitGoodEnough = (topScore >= 0.5) && allWordsInTitle;
+        // const isTopHitGoodEnough = (topScore >= 0.5) && allWordsInTitle;
+        const isTopHitGoodEnough = allWordsInTitle;
+
         
         // If no data found, fetch from OpenAI API
         if (!isTopHitGoodEnough) {

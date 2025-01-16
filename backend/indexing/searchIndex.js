@@ -1,9 +1,8 @@
-const client = require('../services/elasticsearch');
 const INDEX_NAME = 'recipes'; // Elasticsearch index name
 
 
 // Search in Elasticsearch
-async function searchIndexInElasticSearch (keyword, page, size) {
+async function searchIndexInElasticSearch (client, keyword, page, size) {
     // console.log('client:', client);
     // return;
     const query = {

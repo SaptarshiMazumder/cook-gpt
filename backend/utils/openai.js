@@ -6,7 +6,25 @@ const fs = require('fs');
 const client = new OpenAI({
     apiKey: openaiApiKey
 });
+const {zodResponseFormat} = require('openai/helpers/zod');
+const {z} = require('zod');
+const IndexItem = z.object({
+    title: z.string(),   
+    ingredients: z.string(),
+    instructions: z.string(),
+    preparationTime: z.string(),
+    difficulty: z.string(),
+    tips: z.string(),
+    source: z.string(),
+    link: z.string(),
+    tags: z.array(z.string()),
+    });
 
+// const IndexItemArray = z.array(IndexItem);
+// Define Zod schema for the response, which wraps the array in an object
+const IndexItemSchema = z.object({
+    items: z.array(IndexItem),
+  });
 async function getChatCompletion(conversationHistory, adjustedPrompt) {
     try {
         const chatCompletion = await client.chat.completions.create({
@@ -39,6 +57,7 @@ async function getChatCompletionWithoutHistory(prompt) {
                     content: prompt
                 }
             ],
+            response_format: zodResponseFormat(IndexItemSchema, "items")
         });
         return chatCompletion.choices[0].message.content;
     } catch (error) {

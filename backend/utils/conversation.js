@@ -5,23 +5,14 @@ let conversationHistory = [
     {
         role: "system",
         content: `
-You are a professional chef and culinary researcher tasked with retrieving recipes based on specific names. Your output must adhere to the following rules:
-
-1. Use ONLY publicly available recipes from trusted sources, such as reputable websites or cookbooks.
-2. The recipe must match the source EXACTLY as it appears. Do not modify, reinterpret, or "inspire" recipes in any way.
-3. Include a direct link to the recipe or reference the cookbook with page numbers, if applicable.
-4. If no recipe exists with the specified name, explain why it cannot be found and suggest similar recipes that are publicly available with verifiable sources.
-
-Each recipe must include:
-- A full list of ingredients with exact measurements.
-- Numbered instructions for each step in the cooking process.
-- Optional tips to improve the dish or avoid common mistakes.
-- The exact source or reference where the recipe is derived from, including the website, cookbook, or professional culinary source.
-
-Use only trusted culinary sources, and relate all answers to cooking. Never generate hypothetical or AI-created recipes.
-`
+        You are a professional chef`
     }
 ];
+
+function outputConversationHistory() {
+    console.log('conversation History: \n', conversationHistory);
+    return conversationHistory;
+}
 
 function formatMarkdownResponse(response) {
     return response
@@ -80,40 +71,14 @@ Use only trusted culinary sources, and relate all answers to cooking. Never gene
 async function handleKeywordsPrompt(ingredients) {
     const ingredientList = ingredients.join(", ");
     const prompt = `
-    You are a professional chef and culinary researcher. The user provides an array of ingredients: ${ingredientList}. Your output must adhere to the following rules:
-
-1. Provide up to four (4) **exact and complete** recipes that primarily use these ingredients, referencing only trusted, publicly available sources (e.g., AllRecipes, Food Network, Bon Appétit).
+    You are a professional chef. User provides an array of ingredients: ${ingredientList}. Your output must follow the rules:
+1. Provide at least 4 **exact and complete** recipes that primarily use these ingredients, referencing only trusted, publicly available sources (e.g., AllRecipes, Food Network, Bon Appétit).
    - If fewer than 4 recipes can be found, explicitly state that fewer were found and return only those that exist.
-2. Each recipe must include:
-   - "title": Name of the recipe
-   - "ingredients": A complete, accurate list of ingredients (with precise measurements) that matches the source’s recipe. Use the user’s ingredients as the core and add only common/minimal items (e.g., salt, oil) if needed.
-   - "instructions": The full cooking steps exactly as written in the source, with no summarization or omission.
-   - "preparationTime": The stated prep/cook time if available
-   - "difficulty": The difficulty level if provided by the source
-   - "tips": Any additional notes from the source
-   - "source": Name of the source (e.g., "Food Network")
-   - "link": The direct URL to the recipe
-   - "tags": An array of relevant tags (e.g., "Breakfast", "Vegan", etc.)
-3. If no recipe strictly matches the user’s ingredient list, propose minimal additional ingredients or similar recipes. However, do not include “outrageous” additions.
-4. If you truly cannot find any recipe, you may return fewer than four or even zero. In that case, explicitly mention that fewer were found.
-5. Respond **only** with a valid JSON array in the form:
-
-[
-  {
-    "title": "Recipe Title",
-    "ingredients": ["Ingredient 1", "Ingredient 2", ...],
-    "instructions": ["Step 1", "Step 2", ...],
-    "preparationTime": "Time string (if any)",
-    "difficulty": "Difficulty level (if any)",
-    "tips": "Notes or additional tips",
-    "source": "Source name",
-    "link": "https://...",
-    "tags": ["Tag1", "Tag2", ...]
-  }
-]
-
-6. Do not use triple backticks, Markdown formatting, or any text outside the JSON array. Return only the array itself, with no preamble or postscript.
-
+2. If no recipe strictly matches the user’s ingredient list, propose minimal additional ingredients or similar recipes. However, do not include “outrageous” additions.
+3. If you truly cannot find any recipe, you may return fewer than four or even zero. In that case, explicitly mention that fewer were found.
+4. **Identify any ingredients that are not edible or are hazardous**. 
+   - Provide a short explanation for why these items are not suitable for cooking.
+5.  Do not use triple backticks, Markdown, or any code fencing. 
     `;
 
 
@@ -124,53 +89,21 @@ async function handleKeywordsPrompt(ingredients) {
     // let assistantResponse = await getChatCompletion(conversationHistory, prompt);
     let assistantResponse = await getChatCompletionWithoutHistory(prompt);
 
-    // // Check for source inclusion
-    // if (!assistantResponse.toLowerCase().includes("source")) {
-    //     assistantResponse += "\n\n(Note: The source was not explicitly provided in the response. Please validate or request the source.)";
-    // }
-
-    // const formattedResponse = formatMarkdownResponse(assistantResponse);
-
-
-
-    // // Add assistant's response to conversation history
-    // conversationHistory.push({ role: "assistant", content: formattedResponse });
-
+   
+    // Add assistant's response to conversation history
+    conversationHistory.push({ role: "assistant", content: assistantResponse });
+    outputConversationHistory();
     return assistantResponse;
 }
 
 async function handleItemsSearchPrompt(keyword){
     const prompt = `
-    You are a professional chef and culinary researcher tasked with finding recipes. Your output must adhere to the following rules:
+    You are a professional chef. Your output must follow the rules:
     
     1. Provide **exact and complete recipes** for "${keyword}" from trusted and publicly available sources (e.g., AllRecipes, Food Network, Bon Appétit).
-    2. Ensure that the response includes **exactly 4 recipes**. If fewer than 4 recipes exist, explicitly state that fewer recipes were found and return only the available recipes.
-    3. Each recipe must include:
-       - Name of the recipe.
-       - Complete and accurate list of ingredients with precise measurements.
-       - Full cooking instructions as present in the source, with **step-by-step clarity** and no summarization.
-       - Preparation time and difficulty level, if available.
-       - Additional tips or notes provided in the source.
-       - Source name and a link to the recipe.
-       - Relevant tags (e.g., cuisine type, category).
-    4. **Do not summarize** or omit details. Present the instructions exactly as written in the source.
-    5. Respond in this format, adhering to the following structure:
-    [
-        {
-            "title": "Recipe Title",
-            "ingredients": ["Ingredient 1", "Ingredient 2", ...],
-            "instructions": ["Step 1", "Step 2", ...],
-            "preparationTime": "Time string",
-            "difficulty": "Difficulty level",
-            "tips": "Additional notes or tips",
-            "source": "Name of the source",
-            "link": "URL to the recipe",
-            "tags": ["Tag1", "Tag2", ...]
-        }
-    ]
-    
+    2. Ensure that the response includes **exactly 4 recipes**. If fewer than 4 recipes exist, explicitly state that fewer recipes were found and return only the available recipes.  
+    3. **Do not summarize** or omit details. Present the instructions exactly as written in the source.
     Do not use triple backticks, Markdown, or any code fencing. 
-    Respond ONLY with the array. Do not include any text before or after the JSON.
     `;
     
 
@@ -195,8 +128,8 @@ async function handleItemsSearchPrompt(keyword){
     
 }
 
-async function handleMorePrompt(keyword){
-    const prompt = `More recipies for ${keyword}, in the exact same format as before`  ;
+async function handleMorePrompt(query){
+    const prompt = `4 More recipies for ${query}, follow the same rules as before`  ;
     conversationHistory.push({ role: "user", content: prompt });
     let assistantResponse = await getChatCompletion(conversationHistory, prompt);
     console.log('assistantResponse:', assistantResponse);

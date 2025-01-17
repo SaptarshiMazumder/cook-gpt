@@ -120,6 +120,33 @@ router.get('/', async (req, res) => {
     }
 });
 
+
+
+router.post('/ingredients', async (req, res) => {
+    const { ingredients } = req.body;
+
+    if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
+        return res.status(400).json({ error: "Ingredients must be provided as a non-empty array." });
+    }
+
+    try {
+        const esResponse = await searchKeywordsInES(ingredients);
+
+        if (!esResponse.hits.hits.length) {
+            // console.log("no result found in es", esResponse);
+            const openAIRes = await handleKeywordsPrompt(ingredients);
+            await saveResponsesToElasticsearch(openAIRes);
+            return res.send(openAIRes);
+            // return res.json({ source: 'OpenAI', data: openAIRes });
+        }
+        const response = await handleKeywordsPrompt(ingredients);
+        res.send( response );
+    } catch (error) {
+        console.error("Error generating recipe:", error);
+        res.status(500).json({ error: "Failed to generate recipe." });
+    }
+});
+
 router.get('/more', async (req, res) => {
     let { prompt } = req.query;
     console.log(prompt);
@@ -136,24 +163,6 @@ router.get('/more', async (req, res) => {
         res.status(500).json({ error: error.prompt });
     }
 });
-
-
-router.post('/ingredients', async (req, res) => {
-    const { ingredients } = req.body;
-
-    if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
-        return res.status(400).json({ error: "Ingredients must be provided as a non-empty array." });
-    }
-
-    try {
-        const response = await handleKeywordsPrompt(ingredients);
-        res.send( response );
-    } catch (error) {
-        console.error("Error generating recipe:", error);
-        res.status(500).json({ error: "Failed to generate recipe." });
-    }
-});
-
 
 // Add a new recipe
 router.post('/', async (req, res) => {
@@ -192,7 +201,7 @@ router.post('/', async (req, res) => {
 
 const INDEX_NAME = 'recipies';
 
-async function searchIndexInES (keyword, page, size) {
+async function searchKeywordInES (keyword, page, size) {
 
     const query = {
       index: INDEX_NAME,
@@ -236,12 +245,60 @@ async function searchIndexInES (keyword, page, size) {
     
   }
 
+  async function searchKeywordsInES(ingredients, page = 0, size = 10) {
+    const query = {
+        index: INDEX_NAME,
+        body: {
+            query: {
+                bool: {
+                    must: [
+                        {
+                            match: {
+                                ingredients: ingredients.join(" "), // Match ingredients as a phrase
+                            },
+                        },
+                    ],
+                    should: [
+                        {
+                            terms: {
+                                "ingredients.keyword": ingredients, // Match individual ingredients
+                            },
+                        },
+                        {
+                            multi_match: {
+                                query: ingredients.join(" "),
+                                fields: ["title^2", "description", "tags"],
+                                fuzziness: "AUTO",
+                                type: "most_fields",
+                            },
+                        },
+                    ],
+                },
+            },
+            highlight: {
+                fields: {
+                    ingredients: {},
+                    title: {},
+                    description: {},
+                },
+            },
+            from: page * size,
+            size,
+        },
+    };
+
+    const response = await client.search(query);
+    console.log('Ingredient-based search response:', response);
+    return response;
+    
+}
+
 
 async function saveResponsesToElasticsearch(recipesArray) {
     const jsonData = JSON.parse(recipesArray);
     const bulkOps = [];
 
-    for (const recipe of jsonData) {
+    for (const recipe of jsonData.items) {
       // OPTIONAL: Validate required fields
       console.log(recipe);
       console.log('--------------------');
@@ -300,13 +357,16 @@ async function saveResponsesToElasticsearch(recipesArray) {
   
 }
 
+
+  
+
 router.get('/search', async (req, res) => {
     const { name } = req.query;
     if (!name) {
         return res.status(400).json({ error: "Recipe name is required." });
     }
     try {
-        const esResponse = await searchIndexInES(name, 0, 10);
+        const esResponse = await searchKeywordInES(name, 0, 10);
         // const esResponse = await searchIndexInElasticSearch(client, name, 0, 10);
 
          // 2. If no hits, fallback
@@ -318,47 +378,14 @@ router.get('/search', async (req, res) => {
             // return res.json({ source: 'OpenAI', data: openAIRes });
         }
 
-        // 3) Check top 1 and top 2 results for relevance
-        const hits = esResponse.hits.hits;
-        console.log('Found hits in ES: \n', hits);
-
-        const topHit = hits[0];
-        const topScore = topHit._score || 0;
-        const topTitle = (topHit._source.title || "").toLowerCase();
-
-        // Basic word-by-word check to ensure all user query words appear in topTitle
-        // e.g., "egg toast" -> ["egg", "toast"]
-        const queryWords = name.toLowerCase().split(/\s+/).filter(Boolean);
-        const allWordsInTitle = queryWords.every(word => topTitle.includes(word));
-        
-        // This is our "good enough" condition:
-        // - topScore >= 0.5 (could be 0.8, 1.0, etc.)
-        // - topTitle includes all user query words
-        // const isTopHitGoodEnough = (topScore >= 0.5) && allWordsInTitle;
-        const isTopHitGoodEnough = allWordsInTitle;
-
-        
-        // If no data found, fetch from OpenAI API
-        if (!isTopHitGoodEnough) {
-            console.log("Falling back to OpenAI. Score or title check failed.", {
-                topScore,
-                allWordsInTitle
-              });        
-            // Fallback to OpenAI
-            const openAIRes = await handleItemsSearchPrompt(name);
-            await saveResponsesToElasticsearch(openAIRes);
-        
-            return res.send(openAIRes);
-        }
-
         return res.json({
             total: esResponse.hits.total.value,
-            results: hits.map(hit => ({
+            results: esResponse.hits.hits.map(hit => ({
                 id: hit._id,
                 score: hit._score,
                 ...hit._source
             }))
-            });
+        });
 
     } catch (error) {
         console.error('Error in /search:', error);

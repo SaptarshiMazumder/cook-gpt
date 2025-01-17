@@ -139,8 +139,14 @@ router.post('/ingredients', async (req, res) => {
             return res.send(openAIRes);
             // return res.json({ source: 'OpenAI', data: openAIRes });
         }
-        const response = await handleKeywordsPrompt(ingredients);
-        res.send( response );
+        return res.json({
+            total: esResponse.hits.total.value,
+            results: esResponse.hits.hits.map(hit => ({
+                id: hit._id,
+                score: hit._score,
+                ...hit._source
+            }))
+        });
     } catch (error) {
         console.error("Error generating recipe:", error);
         res.status(500).json({ error: "Failed to generate recipe." });

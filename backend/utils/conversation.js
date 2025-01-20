@@ -121,7 +121,7 @@ async function handleItemsSearchPrompt(keyword){
 
 
     // Add assistant's response to conversation history
-    // conversationHistory.push({ role: "assistant", content: formattedResponse });
+    conversationHistory.push({ role: "assistant", content: assistantResponse });
 
     return assistantResponse;
 
@@ -133,8 +133,7 @@ async function handleMorePrompt(query){
     conversationHistory.push({ role: "user", content: prompt });
     let assistantResponse = await getChatCompletion(conversationHistory, prompt);
     console.log('assistantResponse:', assistantResponse);
-    const formattedResponse = formatMarkdownResponse(assistantResponse);
-    conversationHistory.push({ role: "assistant", content: formattedResponse });
+    conversationHistory.push({ role: "assistant", content: assistantResponse });
     return assistantResponse;
 
 }

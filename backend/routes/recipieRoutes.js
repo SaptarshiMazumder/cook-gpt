@@ -159,15 +159,14 @@ router.get('/more', async (req, res) => {
     if (!prompt) {
         prompt = "Provide a step-by-step recipe for making French Toast.";
     }
-    try {
+    
         const response = await handleMorePrompt(prompt);
         // const parsedResponse = parseResultToJSON(response);
+        await saveResponsesToElasticsearch(response);
 
-        res.send(response)
+        return res.send(response);
         // res.json({ recipe });
-    } catch (error) {
-        res.status(500).json({ error: error.prompt });
-    }
+    
 });
 
 // Add a new recipe
@@ -218,7 +217,7 @@ async function searchKeywordInES (keyword, page, size) {
               {
                 multi_match: {
                   query: keyword,
-                  fields: ["title^3", "description", "ingredients"],
+                  fields: ["title^3", "description", "ingredients", "tags^2"],
                   fuzziness: "AUTO",
                   type: "most_fields",
                 },
@@ -273,7 +272,7 @@ async function searchKeywordInES (keyword, page, size) {
                         {
                             multi_match: {
                                 query: ingredients.join(" "),
-                                fields: ["title^2", "description", "tags"],
+                                fields: ["title", "description", "tags^2", "ingredients^2"],
                                 fuzziness: "AUTO",
                                 type: "most_fields",
                             },

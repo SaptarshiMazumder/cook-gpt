@@ -6,6 +6,8 @@ const {
     handleItemsSearchPrompt,
     handleMorePrompt,
     handleSpecificQueryPrompt,
+    handleMorePromptForSearch,
+    handleMorePromptForKeywords,
  } = require('../utils/conversation');
 
 const router = express.Router();
@@ -153,19 +155,48 @@ router.post('/ingredients', async (req, res) => {
     }
 });
 
-router.get('/more', async (req, res) => {
+router.get('/more-search', async (req, res) => {
     let { prompt } = req.query;
     console.log(prompt);
-    if (!prompt) {
-        prompt = "Provide a step-by-step recipe for making French Toast.";
-    }
-    
-        const response = await handleMorePrompt(prompt);
+    try{
+        if (!prompt) {
+            prompt = "Provide a step-by-step recipe for making French Toast.";
+        }
+        
+        const response = await handleMorePromptForSearch(prompt);
         // const parsedResponse = parseResultToJSON(response);
         await saveResponsesToElasticsearch(response);
 
         return res.send(response);
         // res.json({ recipe });
+    }
+    catch(error){
+        res.status(500).json({ error: error });
+    }
+    
+    
+});
+
+router.post('/more-keywords', async (req, res) => {
+    // let { prompt } = req.query;
+    const { ingredients } = req.body;
+    // console.log(prompt);
+    try{
+        // if (!prompt) {
+        //     prompt = "Provide a step-by-step recipe for making French Toast.";
+        // }
+        
+        const response = await handleMorePromptForKeywords(ingredients);
+        // const parsedResponse = parseResultToJSON(response);
+        await saveResponsesToElasticsearch(response);
+
+        return res.send(response);
+        // res.json({ recipe });
+    }
+    catch(error){
+        res.status(500).json({ error: error });
+    }
+    
     
 });
 
@@ -257,27 +288,35 @@ async function searchKeywordInES (keyword, page, size) {
             query: {
                 bool: {
                     must: [
+                        // Ensure all specified ingredients are present
                         {
-                            match: {
-                                ingredients: ingredients.join(" "), // Match ingredients as a phrase
+                            bool: {
+                                must: ingredients.map(ingredient => ({
+                                    match: {
+                                        "ingredients": ingredient,
+                                    },
+                                })),
                             },
                         },
                     ],
                     should: [
+                        // Boost documents with exact matches for ingredients
                         {
                             terms: {
-                                "ingredients.keyword": ingredients, // Match individual ingredients
+                                "ingredients.keyword": ingredients,
                             },
                         },
+                        // Match in other fields (e.g., title, description) with fuzziness
                         {
                             multi_match: {
                                 query: ingredients.join(" "),
-                                fields: ["title", "description", "tags^2", "ingredients^2"],
+                                fields: ["title^2", "description", "tags^2"],
                                 fuzziness: "AUTO",
                                 type: "most_fields",
                             },
                         },
                     ],
+                    minimum_should_match: 1, // At least one should clause must match
                 },
             },
             highlight: {
@@ -295,11 +334,12 @@ async function searchKeywordInES (keyword, page, size) {
     const response = await client.search(query);
     console.log('Ingredient-based search response:', response);
     return response;
-    
 }
 
 
+
 async function saveResponsesToElasticsearch(recipesArray) {
+    console.log('Recipes Array:', recipesArray);
     const jsonData = JSON.parse(recipesArray);
     const bulkOps = [];
 

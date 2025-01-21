@@ -28,11 +28,12 @@ const IndexItemSchema = z.object({
 async function getChatCompletion(conversationHistory, adjustedPrompt) {
     try {
         const chatCompletion = await client.chat.completions.create({
-            model: "gpt-4o-mini",
+            model: "gpt-4o",
             messages: conversationHistory.concat({
                 role: "assistant",
                 content: adjustedPrompt
             }),
+            response_format: zodResponseFormat(IndexItemSchema, "items")
         });
         // console.log("Conversation History:", conversationHistory);
         return chatCompletion.choices[0].message.content;

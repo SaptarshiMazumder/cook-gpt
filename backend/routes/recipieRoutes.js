@@ -281,7 +281,7 @@ async function searchKeywordInES (keyword, page, size) {
     
   }
 
-  async function searchKeywordsInES(ingredients, page = 0, size = 10) {
+async function searchKeywordsInES(ingredients, page = 0, size = 10) {
     const query = {
         index: INDEX_NAME,
         body: {
@@ -336,6 +336,27 @@ async function searchKeywordInES (keyword, page, size) {
     return response;
 }
 
+function deduplicateBySource(results) {
+    const uniqueResults = [];
+    const seen = new Set();
+  
+    for (const r of results) {
+      // 1) Normalize the source
+      let normalized = r.source || "unknown";
+      normalized = normalized
+        .toLowerCase()
+        .replace(/(\.com|\.net|[^a-z0-9]+)/g, ""); 
+        // remove .com, .net, punctuation, etc.
+  
+      // 2) Check if we've seen this normalized source
+      if (!seen.has(normalized)) {
+        uniqueResults.push(r);
+        seen.add(normalized);
+      }
+    }
+  
+    return uniqueResults;
+  }
 
 
 async function saveResponsesToElasticsearch(recipesArray) {

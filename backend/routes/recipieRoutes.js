@@ -132,22 +132,36 @@ router.post('/ingredients', async (req, res) => {
     }
 
     try {
+
+         // 1) Call OpenAI API first to get AI-based recipes
+        const openAIRes = await handleKeywordsPrompt(ingredients);
+         // 2) (Optional) Save the AI results to Elasticsearch
+        //    This ensures they're indexed for future queries
+        await saveResponsesToElasticsearch(openAIRes);
         const esResponse = await searchKeywordsInES(ingredients);
 
         if (!esResponse.hits.hits.length) {
             // console.log("no result found in es", esResponse);
-            const openAIRes = await handleKeywordsPrompt(ingredients);
-            await saveResponsesToElasticsearch(openAIRes);
+            // const openAIRes = await handleKeywordsPrompt(ingredients);
+            // await saveResponsesToElasticsearch(openAIRes);
             return res.send(openAIRes);
             // return res.json({ source: 'OpenAI', data: openAIRes });
         }
+        // 3) Filter out hits with _score < 1.0
+        // const filteredHits = esResponse.hits.hits
+        // .filter(hit => hit._score >= 1.0);
+        const aires = JSON.parse(openAIRes);
+        const esHits = esResponse.hits.hits.map((hit) => ({
+            id: hit._id,
+            score: hit._score,
+            ...hit._source
+          }));
+        const combinedResults = [aires, ...esHits];
+         // 4) Deduplicate, keeping newest item for each source
+        const uniqueLatest = deduplicateBySourceKeepLatest(combinedResults);
         return res.json({
-            total: esResponse.hits.total.value,
-            results: esResponse.hits.hits.map(hit => ({
-                id: hit._id,
-                score: hit._score,
-                ...hit._source
-            }))
+            total: uniqueLatest.length,
+            results: uniqueLatest,
         });
     } catch (error) {
         console.error("Error generating recipe:", error);
@@ -248,20 +262,27 @@ async function searchKeywordInES (keyword, page, size) {
               {
                 multi_match: {
                   query: keyword,
-                  fields: ["title^3", "description", "ingredients", "tags^2"],
-                  fuzziness: "AUTO",
-                  type: "most_fields",
+                  fields: [
+                    "title^3",
+                    "tags^2",
+                    "description",
+                    "ingredients"
+                  ],         
+                  fuzziness: 1  ,
+                  type: "best_fields",
+                  operator: "AND"
                 },
               },
               {
                 prefix: {
                   title: {
                     value: keyword,
-                    boost: 2,
+                    boost: 1,
                   },
                 },
               },
             ],
+            minimum_should_match: 1
           },
         },
         highlight: {
@@ -335,6 +356,35 @@ async function searchKeywordsInES(ingredients, page = 0, size = 10) {
     console.log('Ingredient-based search response:', response);
     return response;
 }
+
+function deduplicateBySourceKeepLatest(results) {
+    // 1) First pass: map each normalized source to its latest occurrence
+    const latestMap = new Map();
+    
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      let normalized = (r.source || "unknown").toLowerCase()
+        .replace(/(\.com|\.net|[^a-z0-9]+)/g, ""); 
+      // This ensures that for each source, we store the *last* item we encounter
+      latestMap.set(normalized, r);
+    }
+    
+    // 2) Second pass: build final array in original order
+    const finalList = [];
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      let normalized = (r.source || "unknown").toLowerCase()
+        .replace(/(\.com|\.net|[^a-z0-9]+)/g, "");
+      
+      // Only include the item if it matches the "latest" object we stored
+      if (latestMap.get(normalized) === r) {
+        finalList.push(r);
+      }
+    }
+    
+    return finalList;
+  }
+  
 
 function deduplicateBySource(results) {
     const uniqueResults = [];
@@ -443,10 +493,14 @@ router.get('/search', async (req, res) => {
             return res.send(openAIRes);
             // return res.json({ source: 'OpenAI', data: openAIRes });
         }
+        // 3) Filter out hits with _score < 1.0
+        const filteredHits = esResponse.hits.hits
+        .filter(hit => hit._score >= 1.0);
+        console.log('Hits with good score:', filteredHits);
 
         return res.json({
-            total: esResponse.hits.total.value,
-            results: esResponse.hits.hits.map(hit => ({
+            total: filteredHits.length,
+            results: filteredHits.map(hit => ({
                 id: hit._id,
                 score: hit._score,
                 ...hit._source

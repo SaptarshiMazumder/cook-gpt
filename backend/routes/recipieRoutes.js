@@ -497,7 +497,11 @@ router.get('/search', async (req, res) => {
         const filteredHits = esResponse.hits.hits
         .filter(hit => hit._score >= 1.0);
         console.log('Hits with good score:', filteredHits);
-
+        // const uniqueLatest = deduplicateBySourceKeepLatest(filteredHits);
+        // return res.json({
+        //     total: uniqueLatest.length,
+        //     results: uniqueLatest,
+        // });
         return res.json({
             total: filteredHits.length,
             results: filteredHits.map(hit => ({

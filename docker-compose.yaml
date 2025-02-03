@@ -14,7 +14,7 @@ services:
     build: ./backend
     container_name: backend_c
     ports:
-      - '4000:4000'
+      - '80:4000'
     networks:
       - cookie-monster
     environment:

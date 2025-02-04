@@ -51,12 +51,12 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.0.1
     container_name: elasticsearch
     environment:
-      - bootstrap.memory_lock=true
+      # - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - discovery.type=single-node
       - xpack.security.enabled=false
     logging:
-      driver: none
+      driver: "json-file"
     ports:
       - '9200:9200'
     networks:

@@ -25,9 +25,9 @@ services:
      - ELASTIC_URL=http://elasticsearch:9200
     links:
         - elasticsearch
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
+    # depends_on:
+    #   elasticsearch:
+    #     condition: service_healthy
     # environment:
     #   - POSTGRES_HOST=192.168.1.7
     #   - POSTGRES_USER=postgres

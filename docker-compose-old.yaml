@@ -5,17 +5,18 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: "172.28.0.0/16"
+        # - subnet: "172.28.0.0/16"
+        - subnet: "172.30.0.0/16"
+
 
 services:
   backend:
     build: ./backend
     container_name: backend_c
     ports:
-      - '4000:4000'
+      - '80:4000'
     networks:
-      cookie-monster:
-        ipv4_address: "172.28.0.11"
+      - cookie-monster
     environment:
      - network.host=0.0.0.0
      - NODE_ENV=local
@@ -50,17 +51,16 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.0.1
     container_name: elasticsearch
     environment:
-      - bootstrap.memory_lock=true
+      # - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - discovery.type=single-node
       - xpack.security.enabled=false
     logging:
-      driver: none
+      driver: "json-file"
     ports:
       - '9200:9200'
     networks:
-      cookie-monster:
-        ipv4_address: "172.28.0.10"
+      - cookie-monster
     healthcheck:
       test: curl -s http://localhost:9200/_cluster/health || exit 1
       interval: 10s

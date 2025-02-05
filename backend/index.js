@@ -9,6 +9,7 @@ const { testEncryption } = require('./controllers/encryption/encryptionControlle
 // const passport = require('passport');
 const authRoutes = require('./routes/authRoutes'); // Import routes
 const dataRoutes = require('./routes/dataRoutes');
+const healthRoutes = require('./routes/healthRoutes');
 const elasticClient = require('./utils/elastic');
 const { createIndex } = require('./controllers/dataController');
 require('dotenv').config();
@@ -27,7 +28,7 @@ app.use('/auth', authRoutes);
 app.use('/api', encryptionRoutes);
 app.use('/recipies', recipieRoutes);
 app.use('/index', dataRoutes);
-
+app.use('/health', healthRoutes);
 // const openaiApiKey = process.env.OPENAI_API_KEY;
 
 const PORT = 4000;

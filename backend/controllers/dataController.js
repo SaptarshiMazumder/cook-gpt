@@ -1,6 +1,8 @@
 const client = require('../services/elasticsearch');
 // Example index name
 const INDEX_NAME = 'recipies';
+// const INDEX_NAME = 'recipie-test';
+
 
 exports.pingSearch = async (req, res) => {
   try {
@@ -151,30 +153,55 @@ exports.searchIndex = async (req, res) => {
 
 
 exports.createIndex = async (req, res) => {
-  try {
-    const exists = await client.indices.exists({ index: INDEX_NAME });
-    if (!exists) {
-        const response = await client.indices.create({
-            index: INDEX_NAME,
-            body: {
-                mappings: {
-                    properties: {
-                        title: { type: 'text' },
-                        ingredients: { type: 'text' },
-                        description: { type: 'text' },
-                        source_url: { type: 'keyword' },
-                        tags: { type: 'keyword' },
-                        created_at: { type: 'date' },
-                    },
-                },
-            },
-        });
-        console.log('Recipe index created:', response);
-    } else {
-        console.log('Recipe index already exists.');
-    }
-} catch (error) {
-    console.error('Error creating recipe index:', error);
-}
+  // console.log("Check index recipie and create if doesnt exist");
+  const exists = await client.indices.exists({ index: INDEX_NAME });
+  console.log('index exists? :', exists);
+  let response
+  
+  if (!exists.body){
+    response = await client.indices.create({
+              index: INDEX_NAME,
+              body: {
+                  mappings: {
+                      properties: {
+                          title: { type: 'text' },
+                          ingredients: { type: 'text' },
+                          description: { type: 'text' },
+                          source_url: { type: 'keyword' },
+                          tags: { type: 'keyword' },
+                          created_at: { type: 'date' },
+                      },
+                  },
+              },
+          });
+  }
+  
+//   try {
+//     const exists = await client.indices.exists({ index: INDEX_NAME });
+//     if (!exists) {
+//       console.log("Creating index")
+//         const response = await client.indices.create({
+//             index: INDEX_NAME,
+//             body: {
+//                 mappings: {
+//                     properties: {
+//                         title: { type: 'text' },
+//                         ingredients: { type: 'text' },
+//                         description: { type: 'text' },
+//                         source_url: { type: 'keyword' },
+//                         tags: { type: 'keyword' },
+//                         created_at: { type: 'date' },
+//                     },
+//                 },
+//             },
+//         });
+//         console.log('Recipe index created:', response);
+//     } else {
+//         console.log('Recipe index already exists.');
+//     }
+// } catch (error) {
+//     console.error('Error creating recipe index:', error);
+// }
+return response;
 }
 

@@ -4,6 +4,7 @@ async function createIndex() {
   try {
       const exists = await client.indices.exists({ index: 'recipes' });
       if (!exists) {
+        console.log("Index doesnt exist yet");
           const response = await client.indices.create({
               index: 'recipes',
               body: {

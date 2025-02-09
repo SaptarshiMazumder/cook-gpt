@@ -484,9 +484,11 @@ router.get('/search', async (req, res) => {
     try {
         const esResponse = await searchKeywordInES(name, 0, 10);
         // const esResponse = await searchIndexInElasticSearch(client, name, 0, 10);
-
+        console.log('esresponse Hits',esResponse)
          // 2. If no hits, fallback
-        if (!esResponse.hits.hits.length) {
+        if (!esResponse.hits) {
+
+        // if (!esResponse.hits.hits.length) {
             // console.log("no result found in es", esResponse);
             const openAIRes = await handleItemsSearchPrompt(name);
             await saveResponsesToElasticsearch(openAIRes);

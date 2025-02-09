@@ -14,7 +14,7 @@ async function testConnection() {
     console.log('Testing Elasticsearch connection');
     try {
         const info = await client.info();
-        console.log('Elasticsearch Info:', info);
+        // console.log('Elasticsearch Info:', info);
     } catch (error) {
         console.error('Elasticsearch connection failed:', error);
     }

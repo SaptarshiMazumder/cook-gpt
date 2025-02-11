@@ -19,6 +19,7 @@
     "crypto": "^1.0.1",
     "crypto-js": "^4.2.0",
     "dotenv": "^16.4.5",
+    "elasticsearch": "^16.7.3",
     "express": "^4.21.1",
     "googleapis": "^144.0.0",
     "jsonwebtoken": "^9.0.2",

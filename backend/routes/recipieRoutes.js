@@ -484,7 +484,7 @@ router.get('/search', async (req, res) => {
     try {
         const esResponse = await searchKeywordInES(name, 0, 10);
         // const esResponse = await searchIndexInElasticSearch(client, name, 0, 10);
-
+        console.log("esResponse: ", esResponse.hits.hits)
          // 2. If no hits, fallback
         if (!esResponse.hits.hits.length) {
             // console.log("no result found in es", esResponse);
@@ -495,7 +495,7 @@ router.get('/search', async (req, res) => {
         }
         // 3) Filter out hits with _score < 1.0
         const filteredHits = esResponse.hits.hits
-        .filter(hit => hit._score >= 1.0);
+        .filter(hit => hit._score >= 0.2);
         console.log('Hits with good score:', filteredHits);
         // const uniqueLatest = deduplicateBySourceKeepLatest(filteredHits);
         // return res.json({

@@ -1,0 +1,120 @@
+const client = require('./services/elasticsearch');
+
+const INDEX_NAME = 'recipies';
+
+async function searchKeywordInES (keyword, page, size) {
+
+    const query = {
+      index: INDEX_NAME,
+      body: {
+        query: {
+          bool: {
+            should: [
+              {
+                multi_match: {
+                  query: keyword,
+                  fields: [
+                    "title^3",
+                    "tags^2",
+                    "description",
+                    "ingredients"
+                  ],         
+                  fuzziness: 1  ,
+                  type: "best_fields",
+                  operator: "AND"
+                },
+              },
+              {
+                prefix: {
+                  title: {
+                    value: keyword,
+                    boost: 1,
+                  },
+                },
+              }
+            ],
+            minimum_should_match: 1
+          },
+        },
+        highlight: {
+          fields: {
+            title: {},
+            description: {},
+          },
+        },
+        from: page * size,
+        size,
+      },
+    };
+  
+    const response = await client.search(query);
+    console.log('This is response from elastic search', response);
+    return response;
+    
+  }
+
+async function saveResponsesToElasticsearch(recipesArray) {
+    console.log('Recipes Array:', recipesArray);
+    const jsonData = JSON.parse(recipesArray);
+    const bulkOps = [];
+
+    for (const recipe of jsonData.items) {
+      // OPTIONAL: Validate required fields
+      console.log(recipe);
+      console.log('--------------------');
+      if (
+        !recipe.title ||
+        !recipe.ingredients ||
+        !recipe.instructions ||
+        !recipe.source
+      ) {
+        console.warn(`Skipping recipe due to missing required fields: ${recipe.title || 'No title'}`);
+        continue;
+      }
+  
+      // Build the recipe doc (can add timestamps if needed)
+      const recipeDoc = {
+        title: recipe.title,
+        ingredients: recipe.ingredients,
+        instructions: recipe.instructions,
+        preparationTime: recipe.preparationTime || "",
+        difficulty: recipe.difficulty || "",
+        tips: recipe.tips || "",
+        source: recipe.source,
+        link: recipe.link || "",
+        tags: recipe.tags || [],
+        created_at: new Date().toISOString()
+      };
+  
+      // Bulk indexing format: action line, then document line
+      bulkOps.push({ index: { _index: INDEX_NAME } });
+      bulkOps.push(recipeDoc);
+    }
+  
+    if (bulkOps.length === 0) {
+      console.log("No valid recipes to index.");
+      return;
+    }
+  
+    try {
+      // Perform bulk insert
+      const bulkResponse = await client.bulk({ body: bulkOps });
+  
+      // Check for errors in bulk response
+      if (bulkResponse.errors) {
+        // Inspect and log each item to see which documents failed
+        console.error("Bulk insert encountered errors:", bulkResponse.items);
+      } else {
+        console.log("Bulk insert successful!");
+      }
+  
+      // Refresh the index so new docs are searchable immediately
+      await client.indices.refresh({ index: INDEX_NAME });
+      console.log("Index refreshed. Documents are searchable now.");
+    } catch (error) {
+      console.error("Error performing bulk insert:", error);
+    }
+  
+}
+
+  module.exports = { searchKeywordInES, saveResponsesToElasticsearch };

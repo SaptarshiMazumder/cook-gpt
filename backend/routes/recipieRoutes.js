@@ -22,7 +22,7 @@ const natural = require("natural");
 const client = require('../services/elasticsearch');
 const { searchIndex } = require('../controllers/dataController');
 const { searchIndexInElasticSearch } = require('../indexing/searchIndex');
-const { searchKeywordInES, saveResponsesToElasticsearch } = require('../elasticservice');
+const { searchKeywordInES, saveResponsesToElasticsearch, getAllDocumentsFromES } = require('../services/elasticservice');
 
 //Helper functions
 // Function to generate tags using TF-IDF
@@ -37,76 +37,20 @@ function generateTagsUsingTFIDF(allTexts, targetText) {
     return tags;
 }
 
-function parseResultToJSON(data) {
-    console.log('Parsing result to JSON...');
-    const lines = data.split("\n");
-    const recipes = [];
-    let currentRecipe = {};
-
-    for (const line of lines) {
-        // Extract the index and title
-        const titleMatch = line.match(/^(\d+)\.\s\*\*(.+?)\*\*/);
-        if (titleMatch) {
-            // Push the current recipe if it is complete
-            if (currentRecipe.title && currentRecipe.url) {
-                recipes.push(currentRecipe);
-            }
-            // Start a new recipe with index and title
-            currentRecipe = { 
-                index: parseInt(titleMatch[1], 10), 
-                title: titleMatch[2], 
-                url: null 
-            };
-        }
-
-        // Extract the URL
-        const urlMatch = line.match(/\[.+?\]\((https?:\/\/[^\s]+)\)/);
-        if (urlMatch) {
-            currentRecipe.url = urlMatch[1];
-        }
-    }
-
-    // Add the last recipe if it exists
-    if (currentRecipe.title && currentRecipe.url) {
-        recipes.push(currentRecipe);
-    }
-    console.log('Parsed recipes:', recipes);
-    return recipes;
-}
-
-function parseResponseToJSON(rawText) {
-    const recipes = [];
-    const recipeSections = rawText.split("###").filter(section => section.trim() !== ""); // Split by recipe headings
-
-    recipeSections.forEach(section => {
-        const titleMatch = section.match(/^\s*\d+\.\s*(.+)$/m);
-        const sourceMatch = section.match(/- \*\*Source\*\*:\s*\[(.+)\]\((.+)\)/);
-        const ingredientsMatch = section.match(/- \*\*Ingredients\*\*:\n([\s\S]*?)(?=\n- \*\*Instructions\*\*:)/);
-        const instructionsMatch = section.match(/- \*\*Instructions\*\*:\n([\s\S]*?)(?=\n- \*\*Tips\*\*:|\n- \*\*Source\*\*:)/);
-        const tipsMatch = section.match(/- \*\*Tips\*\*:\s*(.+)/);
-
-        recipes.push({
-            title: titleMatch ? titleMatch[1].trim() : null,
-            source: sourceMatch ? sourceMatch[1].trim() : null,
-            link: sourceMatch ? sourceMatch[2].trim() : null,
-            ingredients: ingredientsMatch 
-                ? ingredientsMatch[1].trim().split("\n").map(item => item.replace(/^\s*-\s*/, '').trim()) 
-                : [],
-            instructions: instructionsMatch 
-                ? instructionsMatch[1].trim().split("\n").map(item => item.replace(/^\s*\d+\.\s*/, '').trim()) 
-                : [],
-            tips: tipsMatch ? tipsMatch[1].trim() : null,
-        });
-    });
-
-    return recipes;
-}
 
 
 router.get('/all', async (req, res) =>{
     res.json(recipiesList)
 })
 
+router.get('/all-indexed', async (req, res) =>{
+    const response = await getAllDocumentsFromES();
+    res.json({
+        total: response.hits.total.value,
+        data:  response.hits.hits.map(hit => ({ id: hit._id, ...hit._source }))
+  
+    }); 
+})
 // Default prompt route
 // Custom prompt route
 router.get('/', async (req, res) => {

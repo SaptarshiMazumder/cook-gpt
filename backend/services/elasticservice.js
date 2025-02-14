@@ -1,4 +1,4 @@
-const client = require('./services/elasticsearch');
+const client = require('./elasticsearch');
 
 const INDEX_NAME = 'recipies';
 
@@ -117,4 +117,20 @@ async function saveResponsesToElasticsearch(recipesArray) {
   
 }
 
-  module.exports = { searchKeywordInES, saveResponsesToElasticsearch };
+async function getAllDocumentsFromES() {
+  const response = await client.search({
+    index: INDEX_NAME,
+    body: {
+      query: {
+        match_all: {}
+      },
+      size: 1000 // Adjust the size as needed to retrieve all documents
+    }
+  });
+  const total = response.hits.total.value;
+  const recipes = response.hits.hits.map(hit => ({ id: hit._id, ...hit._source }));
+  return response;
+  
+}
+
+module.exports = { searchKeywordInES, saveResponsesToElasticsearch, getAllDocumentsFromES };

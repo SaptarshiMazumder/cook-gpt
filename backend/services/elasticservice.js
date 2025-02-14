@@ -1,4 +1,4 @@
-const client = require('./elasticsearch');
+const client = require('../config/elasticsearch');
 
 const INDEX_NAME = 'recipies';
 
@@ -53,6 +53,60 @@ async function searchKeywordInES (keyword, page, size) {
     
   }
 
+async function searchKeywordsInES(ingredients, page = 0, size = 10) {
+    const query = {
+        index: INDEX_NAME,
+        body: {
+            query: {
+                bool: {
+                    must: [
+                        // Ensure all specified ingredients are present
+                        {
+                            bool: {
+                                must: ingredients.map(ingredient => ({
+                                    match: {
+                                        "ingredients": ingredient,
+                                    },
+                                })),
+                            },
+                        },
+                    ],
+                    should: [
+                        // Boost documents with exact matches for ingredients
+                        {
+                            terms: {
+                                "ingredients.keyword": ingredients,
+                            },
+                        },
+                        // Match in other fields (e.g., title, description) with fuzziness
+                        {
+                            multi_match: {
+                                query: ingredients.join(" "),
+                                fields: ["title^2", "description", "tags^2"],
+                                fuzziness: "AUTO",
+                                type: "most_fields",
+                            },
+                        },
+                    ],
+                    minimum_should_match: 1, // At least one should clause must match
+                },
+            },
+            highlight: {
+                fields: {
+                    ingredients: {},
+                    title: {},
+                    description: {},
+                },
+            },
+            from: page * size,
+            size,
+        },
+    };
+
+    const response = await client.search(query);
+    console.log('Ingredient-based search response:', response);
+    return response;
+}
 async function saveResponsesToElasticsearch(recipesArray) {
     console.log('Recipes Array:', recipesArray);
     const jsonData = JSON.parse(recipesArray);
@@ -133,4 +187,4 @@ async function getAllDocumentsFromES() {
   
 }
 
-module.exports = { searchKeywordInES, saveResponsesToElasticsearch, getAllDocumentsFromES };
+module.exports = { searchKeywordInES, searchKeywordsInES, saveResponsesToElasticsearch, getAllDocumentsFromES };

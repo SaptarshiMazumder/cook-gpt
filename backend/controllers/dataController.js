@@ -1,4 +1,4 @@
-const client = require('../services/elasticsearch');
+const client = require('../config/elasticsearch');
 // Example index name
 const INDEX_NAME = 'recipies';
 
@@ -177,4 +177,3 @@ exports.createIndex = async (req, res) => {
     console.error('Error creating recipe index:', error);
 }
 }
-

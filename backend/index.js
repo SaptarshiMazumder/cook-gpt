@@ -10,7 +10,6 @@ const { testEncryption } = require('./controllers/encryption/encryptionControlle
 const authRoutes = require('./routes/authRoutes'); // Import routes
 const dataRoutes = require('./routes/dataRoutes');
 const healthRoutes = require('./routes/healthRoutes');
-const elasticClient = require('./utils/elastic');
 const { createIndex } = require('./controllers/dataController');
 require('dotenv').config();
 // require('./utils/passport'); // Initialize Passport

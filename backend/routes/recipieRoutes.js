@@ -19,10 +19,9 @@ const recipesFilePath = path.join(__dirname, '../data/recipies.json');
 
 
 const natural = require("natural");
-const client = require('../services/elasticsearch');
-const { searchIndex } = require('../controllers/dataController');
-const { searchIndexInElasticSearch } = require('../indexing/searchIndex');
-const { searchKeywordInES, saveResponsesToElasticsearch, getAllDocumentsFromES } = require('../services/elasticservice');
+const client = require('../config/elasticsearch');
+const { searchKeywordInES, saveResponsesToElasticsearch, getAllDocumentsFromES, searchKeywordsInES } = require('../services/elasticservice');
+const recipeController = require('../controllers/recipeController');
 
 //Helper functions
 // Function to generate tags using TF-IDF
@@ -67,52 +66,10 @@ router.get('/', async (req, res) => {
     }
 });
 
+router.get('/search', recipeController.searchRecipes);
 
 
-router.post('/ingredients', async (req, res) => {
-    const { ingredients } = req.body;
-
-    if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
-        return res.status(400).json({ error: "Ingredients must be provided as a non-empty array." });
-    }
-
-    try {
-
-         // 1) Call OpenAI API first to get AI-based recipes
-        const openAIRes = await handleKeywordsPrompt(ingredients);
-         // 2) (Optional) Save the AI results to Elasticsearch
-        //    This ensures they're indexed for future queries
-        await saveResponsesToElasticsearch(openAIRes);
-        const esResponse = await searchKeywordsInES(ingredients);
-
-        if (!esResponse.hits.hits.length) {
-            // console.log("no result found in es", esResponse);
-            // const openAIRes = await handleKeywordsPrompt(ingredients);
-            // await saveResponsesToElasticsearch(openAIRes);
-            return res.send(openAIRes);
-            // return res.json({ source: 'OpenAI', data: openAIRes });
-        }
-        // 3) Filter out hits with _score < 1.0
-        // const filteredHits = esResponse.hits.hits
-        // .filter(hit => hit._score >= 1.0);
-        const aires = JSON.parse(openAIRes);
-        const esHits = esResponse.hits.hits.map((hit) => ({
-            id: hit._id,
-            score: hit._score,
-            ...hit._source
-          }));
-        const combinedResults = [aires, ...esHits];
-         // 4) Deduplicate, keeping newest item for each source
-        const uniqueLatest = deduplicateBySourceKeepLatest(combinedResults);
-        return res.json({
-            total: uniqueLatest.length,
-            results: uniqueLatest,
-        });
-    } catch (error) {
-        console.error("Error generating recipe:", error);
-        res.status(500).json({ error: "Failed to generate recipe." });
-    }
-});
+router.post('/keywords', recipeController.searchRecipesByKeywords);
 
 router.get('/more-search', async (req, res) => {
     let { prompt } = req.query;
@@ -194,149 +151,7 @@ router.post('/', async (req, res) => {
     });
 });
 
-async function searchKeywordsInES(ingredients, page = 0, size = 10) {
-    const query = {
-        index: INDEX_NAME,
-        body: {
-            query: {
-                bool: {
-                    must: [
-                        // Ensure all specified ingredients are present
-                        {
-                            bool: {
-                                must: ingredients.map(ingredient => ({
-                                    match: {
-                                        "ingredients": ingredient,
-                                    },
-                                })),
-                            },
-                        },
-                    ],
-                    should: [
-                        // Boost documents with exact matches for ingredients
-                        {
-                            terms: {
-                                "ingredients.keyword": ingredients,
-                            },
-                        },
-                        // Match in other fields (e.g., title, description) with fuzziness
-                        {
-                            multi_match: {
-                                query: ingredients.join(" "),
-                                fields: ["title^2", "description", "tags^2"],
-                                fuzziness: "AUTO",
-                                type: "most_fields",
-                            },
-                        },
-                    ],
-                    minimum_should_match: 1, // At least one should clause must match
-                },
-            },
-            highlight: {
-                fields: {
-                    ingredients: {},
-                    title: {},
-                    description: {},
-                },
-            },
-            from: page * size,
-            size,
-        },
-    };
 
-    const response = await client.search(query);
-    console.log('Ingredient-based search response:', response);
-    return response;
-}
-
-function deduplicateBySourceKeepLatest(results) {
-    // 1) First pass: map each normalized source to its latest occurrence
-    const latestMap = new Map();
-    
-    for (let i = 0; i < results.length; i++) {
-      const r = results[i];
-      let normalized = (r.source || "unknown").toLowerCase()
-        .replace(/(\.com|\.net|[^a-z0-9]+)/g, ""); 
-      // This ensures that for each source, we store the *last* item we encounter
-      latestMap.set(normalized, r);
-    }
-    
-    // 2) Second pass: build final array in original order
-    const finalList = [];
-    for (let i = 0; i < results.length; i++) {
-      const r = results[i];
-      let normalized = (r.source || "unknown").toLowerCase()
-        .replace(/(\.com|\.net|[^a-z0-9]+)/g, "");
-      
-      // Only include the item if it matches the "latest" object we stored
-      if (latestMap.get(normalized) === r) {
-        finalList.push(r);
-      }
-    }
-    
-    return finalList;
-  }
-  
-
-function deduplicateBySource(results) {
-    const uniqueResults = [];
-    const seen = new Set();
-  
-    for (const r of results) {
-      // 1) Normalize the source
-      let normalized = r.source || "unknown";
-      normalized = normalized
-        .toLowerCase()
-        .replace(/(\.com|\.net|[^a-z0-9]+)/g, ""); 
-        // remove .com, .net, punctuation, etc.
-  
-      // 2) Check if we've seen this normalized source
-      if (!seen.has(normalized)) {
-        uniqueResults.push(r);
-        seen.add(normalized);
-      }
-    }
-  
-    return uniqueResults;
-  }
-
-
-
-
-  
-
-router.get('/search', async (req, res) => {
-    const { name } = req.query;
-    if (!name) {
-        return res.status(400).json({ error: "Recipe name is required." });
-    }
-    try {
-        const esResponse = await searchKeywordInES(name, 0, 10);
-        console.log("esResponse: ", esResponse.hits.hits)
-         // 2. If no hits, fallback
-        if (!esResponse.hits.hits.length) {
-            const openAIRes = await handleItemsSearchPrompt(name);
-            await saveResponsesToElasticsearch(openAIRes);
-            return res.send(openAIRes);
-        }
-        // 3) Filter out hits with _score < 1.0
-        const filteredHits = esResponse.hits.hits
-        .filter(hit => hit._score >= 0.2);
-        console.log('Hits with good score:', filteredHits);
-        return res.json({
-            total: filteredHits.length,
-            results: filteredHits.map(hit => ({
-                id: hit._id,
-                score: hit._score,
-                ...hit._source
-            }))
-        });
-
-    } catch (error) {
-        console.error('Error in /search:', error);
-        res.status(500).json({ error: 'Failed to process search request.' });
-    }
-});
 
 
 router.post('/search/item', async(req, res)=>{

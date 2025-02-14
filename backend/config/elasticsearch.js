@@ -16,4 +16,18 @@ var client = new elasticsearch.Client({
 //     sniffInterval: false,
 //   });
 
+async function testConnection() {
+    console.log('Testing Elasticsearch connection');
+    try {
+        const info = await client.info();
+        console.log('Elasticsearch Info:', info);
+    } catch (error) {
+        console.error('Elasticsearch connection failed:', error);
+    }
+}
+
+testConnection()
+    .then(res => console.log('Test Connection Result:', res))
+    .catch(error => console.error('Error testing connection:', error));
+
 module.exports = client;

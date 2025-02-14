@@ -1,4 +1,4 @@
-const client = require('../services/elasticsearch');
+const client = require('../config/elasticsearch');
 
 async function createIndex() {
   try {

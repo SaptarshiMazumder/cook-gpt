@@ -21,7 +21,6 @@ const recipesFilePath = path.join(__dirname, '../data/recipies.json');
 const natural = require("natural");
 const client = require('../config/elasticsearch');
 const { searchKeywordInES, saveResponsesToElasticsearch, getAllDocumentsFromES, searchKeywordsInES } = require('../services/elasticservice');
-const recipeController = require('../controllers/recipeController');
 const dataController = require('../controllers/dataController');
 
 //Helper functions
@@ -43,16 +42,8 @@ router.get('/all', async (req, res) =>{
     res.json(recipiesList)
 })
 
-router.get('/all-indexed', async (req, res) =>{
-    const response = await getAllDocumentsFromES();
-    res.json({
-        total: response.hits.total.value,
-        data:  response.hits.hits.map(hit => ({ id: hit._id, ...hit._source }))
-  
-    }); 
-})
-// Default prompt route
-// Custom prompt route
+router.get('/all-indexed', dataController.getAllRecipiesFromES);
+
 router.get('/', async (req, res) => {
     let { prompt } = req.query;
     if (!prompt) {
@@ -72,50 +63,9 @@ router.get('/search', dataController.searchRecipes);
 
 router.post('/keywords', dataController.searchRecipesByKeywords);
 
-router.get('/more-search', async (req, res) => {
-    let { prompt } = req.query;
-    console.log(prompt);
-    try{
-        if (!prompt) {
-            prompt = "Provide a step-by-step recipe for making French Toast.";
-        }
-        
-        const response = await handleMorePromptForSearch(prompt);
-        // const parsedResponse = parseResultToJSON(response);
-        await saveResponsesToElasticsearch(response);
+router.get('/more-search', dataController.searchMoreRecipies);
 
-        return res.send(response);
-        // res.json({ recipe });
-    }
-    catch(error){
-        res.status(500).json({ error: error });
-    }
-    
-    
-});
-
-router.post('/more-keywords', async (req, res) => {
-    // let { prompt } = req.query;
-    const { ingredients } = req.body;
-    // console.log(prompt);
-    try{
-        // if (!prompt) {
-        //     prompt = "Provide a step-by-step recipe for making French Toast.";
-        // }
-        
-        const response = await handleMorePromptForKeywords(ingredients);
-        // const parsedResponse = parseResultToJSON(response);
-        await saveResponsesToElasticsearch(response);
-
-        return res.send(response);
-        // res.json({ recipe });
-    }
-    catch(error){
-        res.status(500).json({ error: error });
-    }
-    
-    
-});
+router.post('/more-keywords', dataController.searchMoreRecipiesForKeywords);
 
 // Add a new recipe
 router.post('/', async (req, res) => {

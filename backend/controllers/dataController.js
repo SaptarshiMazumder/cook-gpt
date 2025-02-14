@@ -1,6 +1,6 @@
 const client = require('../config/elasticsearch');
 const elasticservice = require('../services/elasticservice');
-const { handleItemsSearchPrompt } = require('../utils/conversation');
+const { handleItemsSearchPrompt, handleMorePromptForSearch, handleMorePromptForKeywords, handleKeywordsPrompt } = require('../utils/conversation');
 const { deduplicateBySourceKeepLatest } = require('../utils/recipeUtils');
 
 const INDEX_NAME = 'recipies';
@@ -246,4 +246,53 @@ exports.searchRecipesByKeywords = async (req, res) => {
         console.error("Error generating recipe:", error);
         res.status(500).json({ error: "Failed to generate recipe." });
     }
+};
+
+exports.getAllRecipiesFromES = async (req, res) =>{
+  const response = await elasticservice.getAllDocumentsFromES();
+      return res.json({
+          total: response.hits.total.value,
+          data:  response.hits.hits.map(hit => ({ id: hit._id, ...hit._source }))
+    
+      }); 
+};
+
+exports.searchMoreRecipies = async (req, res) =>{
+ let { prompt } = req.query;
+    console.log(prompt);
+    try{
+        if (!prompt) {
+            prompt = "Provide a step-by-step recipe for making French Toast.";
+        }
+        
+        const response = await handleMorePromptForSearch(prompt);
+        // const parsedResponse = parseResultToJSON(response);
+        await saveResponsesToElasticsearch(response);
+
+        return res.send(response);
+        // res.json({ recipe });
+    }
+    catch(error){
+        res.status(500).json({ error: error });
+    }
+};
+
+exports.searchMoreRecipiesForKeywords = async (req, res)=>{
+  const { ingredients } = req.body;
+      // console.log(prompt);
+      try{
+          // if (!prompt) {
+          //     prompt = "Provide a step-by-step recipe for making French Toast.";
+          // }
+          
+          const response = await handleMorePromptForKeywords(ingredients);
+          // const parsedResponse = parseResultToJSON(response);
+          await saveResponsesToElasticsearch(response);
+
+          return res.send(response);
+          // res.json({ recipe });
+      }
+      catch(error){
+          res.status(500).json({ error: error });
+      }
 };

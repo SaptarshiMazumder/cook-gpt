@@ -22,6 +22,7 @@ const natural = require("natural");
 const client = require('../config/elasticsearch');
 const { searchKeywordInES, saveResponsesToElasticsearch, getAllDocumentsFromES, searchKeywordsInES } = require('../services/elasticservice');
 const recipeController = require('../controllers/recipeController');
+const dataController = require('../controllers/dataController');
 
 //Helper functions
 // Function to generate tags using TF-IDF
@@ -66,10 +67,10 @@ router.get('/', async (req, res) => {
     }
 });
 
-router.get('/search', recipeController.searchRecipes);
+router.get('/search', dataController.searchRecipes);
 
 
-router.post('/keywords', recipeController.searchRecipesByKeywords);
+router.post('/keywords', dataController.searchRecipesByKeywords);
 
 router.get('/more-search', async (req, res) => {
     let { prompt } = req.query;

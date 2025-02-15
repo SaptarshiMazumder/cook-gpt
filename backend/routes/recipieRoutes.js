@@ -1,13 +1,7 @@
 const express = require('express');
 const { 
-    handleGeneralPrompt, 
     getAudioStream, 
-    handleKeywordsPrompt,
-    handleItemsSearchPrompt,
-    handleMorePrompt,
-    handleSpecificQueryPrompt,
-    handleMorePromptForSearch,
-    handleMorePromptForKeywords,
+    
  } = require('../utils/conversation');
 
 const router = express.Router();
@@ -19,11 +13,9 @@ const recipesFilePath = path.join(__dirname, '../data/recipies.json');
 
 
 const natural = require("natural");
-const client = require('../config/elasticsearch');
-const { searchKeywordInES, saveResponsesToElasticsearch, getAllDocumentsFromES, searchKeywordsInES } = require('../services/elasticservice');
-const dataController = require('../controllers/dataController');
+const dataController = require('../controllers/dataController'); // Updated import
 
-//Helper functions
+// Helper functions
 // Function to generate tags using TF-IDF
 function generateTagsUsingTFIDF(allTexts, targetText) {
     const tfidf = new natural.TfIdf();
@@ -35,37 +27,22 @@ function generateTagsUsingTFIDF(allTexts, targetText) {
     });
     return tags;
 }
+// ping the elastic client
+router.get('/ping', dataController.healthCheck);
 
-
-
+//Test route
 router.get('/all', async (req, res) =>{
     res.json(recipiesList)
 })
 
-router.get('/all-indexed', dataController.getAllRecipiesFromES);
+router.get('/all-indexed', dataController.listAllDocumentsFromES); // Updated function name
+router.get('/', dataController.testAPIWithPrompt);
 
-router.get('/', async (req, res) => {
-    let { prompt } = req.query;
-    if (!prompt) {
-        prompt = "Provide a step-by-step recipe for making French Toast.";
-    }
+router.get('/search', dataController.searchDocumentsByName); // Updated function name
+router.post('/keywords', dataController.searchDocumentsByIngredients); // Updated function name
+router.get('/more-search', dataController.generateMoreDocuments); // Updated function name
+router.post('/more-keywords', dataController.generateMoreDocumentsByKeywords); // Updated function name
 
-    try {
-        const recipe = await handleGeneralPrompt(prompt);
-        res.json({ recipe });
-    } catch (error) {
-        res.status(500).json({ error: error.prompt });
-    }
-});
-
-router.get('/search', dataController.searchRecipes);
-
-
-router.post('/keywords', dataController.searchRecipesByKeywords);
-
-router.get('/more-search', dataController.searchMoreRecipies);
-
-router.post('/more-keywords', dataController.searchMoreRecipiesForKeywords);
 
 // Add a new recipe
 router.post('/', async (req, res) => {
@@ -104,18 +81,18 @@ router.post('/', async (req, res) => {
 
 
 
+// Obsolete
+// router.post('/search/item', async(req, res)=>{
 
-router.post('/search/item', async(req, res)=>{
+//     const { title, url } = req.body;
+//     // Validate input
+//     if (!title || !url) {
+//         return res.status(400).json({ error: "Both title and url are required." });
+//     }
 
-    const { title, url } = req.body;
-    // Validate input
-    if (!title || !url) {
-        return res.status(400).json({ error: "Both title and url are required." });
-    }
-
-    const response = await handleSpecificQueryPrompt(title, url);
-    res.send(response);
-})
+//     const response = await handleSpecificQueryPrompt(title, url);
+//     res.send(response);
+// })
 
 
 router.post('/audio', async (req, res) => {

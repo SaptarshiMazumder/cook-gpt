@@ -1,16 +1,13 @@
 const express = require('express');
 const cors = require('cors');
-const OpenAI = require("openai");
-const compromise = require('compromise');
 const routes = require('./routes/routes');
 const encryptionRoutes = require('./routes/encryption');
 const recipieRoutes = require('./routes/recipieRoutes');
 const { testEncryption } = require('./controllers/encryption/encryptionController');
 // const passport = require('passport');
 const authRoutes = require('./routes/authRoutes'); // Import routes
-const dataRoutes = require('./routes/dataRoutes');
 const healthRoutes = require('./routes/healthRoutes');
-const { createIndex } = require('./controllers/dataController');
+const { initIndex } = require('./controllers/dataController'); // Updated import
 require('dotenv').config();
 // require('./utils/passport'); // Initialize Passport
 
@@ -26,7 +23,6 @@ app.use('/', routes);
 app.use('/auth', authRoutes);
 app.use('/api', encryptionRoutes);
 app.use('/recipies', recipieRoutes);
-app.use('/index', dataRoutes);
 app.use('/health', healthRoutes);
 // const openaiApiKey = process.env.OPENAI_API_KEY;
 
@@ -40,7 +36,7 @@ app.get('/', (req, res) => {
 });
 
 
-createIndex();
+initIndex();
 // Elasticsearch Index Setup
 
 

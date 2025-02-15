@@ -26,4 +26,4 @@ function deduplicateBySourceKeepLatest(results) {
     return finalList;
   }
 
-  module.exports = { deduplicateBySourceKeepLatest };
+module.exports = { deduplicateBySourceKeepLatest };

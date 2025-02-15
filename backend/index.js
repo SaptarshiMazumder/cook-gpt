@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const routes = require('./routes/routes');
 const encryptionRoutes = require('./routes/encryption');
-const recipieRoutes = require('./routes/recipieRoutes');
+const dataRoutes = require('./routes/dataRoutes');
 const { testEncryption } = require('./controllers/encryption/encryptionController');
 // const passport = require('passport');
 const authRoutes = require('./routes/authRoutes'); // Import routes
@@ -22,7 +22,7 @@ app.use(cors());
 app.use('/', routes);
 app.use('/auth', authRoutes);
 app.use('/api', encryptionRoutes);
-app.use('/recipies', recipieRoutes);
+app.use('/data', dataRoutes);
 app.use('/health', healthRoutes);
 // const openaiApiKey = process.env.OPENAI_API_KEY;
 

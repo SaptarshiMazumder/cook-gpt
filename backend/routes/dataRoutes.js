@@ -8,12 +8,13 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs'); // Import the fs module
 
-const recipiesList = require('../data/recipies.json')
-const recipesFilePath = path.join(__dirname, '../data/recipies.json');
+const dataList = require('../data/recipies.json')
+const dataFilePath = path.join(__dirname, '../data/data.json');
 
 
 const natural = require("natural");
-const dataController = require('../controllers/dataController'); // Updated import
+const dataUtils = require('../utils/dataUtils');
+const dataController = require('../controllers/dataController');
 
 // Helper functions
 // Function to generate tags using TF-IDF
@@ -32,7 +33,7 @@ router.get('/ping', dataController.healthCheck);
 
 //Test route
 router.get('/all', async (req, res) =>{
-    res.json(recipiesList)
+res.json(dataList)
 })
 
 router.get('/all-indexed', dataController.listAllDocumentsFromES); // Updated function name
@@ -53,13 +54,13 @@ router.post('/', async (req, res) => {
     }
 
     // Generate tags for the new recipe
-    const allDescriptions = recipiesList.map(recipe => recipe.description);
+const allDescriptions = dataList.map(recipe => recipe.description);
     allDescriptions.push(description); // Add the new description to the corpus
     const tags = generateTagsUsingTFIDF(allDescriptions, description);
 
     // Create new recipe
-    const newRecipe = {
-        id: recipiesList.length + 1, // Auto-increment ID
+    const newData = {
+        id: dataList.length + 1, // Auto-increment ID
         name,
         description,
         author: "anonymous", // Default author
@@ -67,15 +68,15 @@ router.post('/', async (req, res) => {
     };
 
     // Add to in-memory list
-    recipiesList.push(newRecipe);
+    dataList.push(newData);
 
     // Write updated list to JSON file
-    fs.writeFile(recipesFilePath, JSON.stringify(recipiesList, null, 2), (err) => {
+fs.writeFile(dataFilePath, JSON.stringify(recipiesList, null, 2), (err) => {
         if (err) {
-            console.error("Error writing to recipes.json:", err);
-            return res.status(500).json({ error: "Failed to save recipe." });
+console.error("Error writing to data.json:", err);
+return res.status(500).json({ error: "Failed to save data." });
         }
-        res.status(201).json({ message: "Recipe added successfully.", recipe: newRecipe });
+res.status(201).json({ message: "data added successfully.", data: newData });
     });
 });
 

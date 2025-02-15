@@ -35,12 +35,12 @@ const KEYWORDS_PROMPT = `
 5.  Do not use triple backticks, Markdown, or any code fencing. 
     `;
 
-const MORE_PROMPT = `4 More recipies for \${keyword}, follow the same rules as before`  ;
+const MORE_PROMPT = `4 More recipies for \${query}, follow the same rules as before`  ;
 
 const KEYWORD_MORE_PROMPT = `
     You are a professional chef. Your output must follow the rules:
     
-    1. Provide **exact and complete recipes** for "\${keyword}" from trusted and publicly available sources (e.g., AllRecipes, Food Network, Bon Appétit).
+    1. Provide **exact and complete recipes** for "\${query}" from trusted and publicly available sources (e.g., AllRecipes, Food Network, Bon Appétit).
     2. Ensure that the response includes **exactly 4 recipes**. If fewer than 4 recipes exist, explicitly state that fewer recipes were found and return only the available recipes.  
     3. **Do not summarize** or omit details. Present the instructions exactly as written in the source.
     Do not use triple backticks, Markdown, or any code fencing. 

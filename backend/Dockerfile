@@ -15,7 +15,7 @@ RUN npm install
 # Copy the rest of the application files to the working directory
 COPY . .
 
-ENV PORT 4000
+ENV PORT 80
 EXPOSE $PORT
 
 # Command to run the application

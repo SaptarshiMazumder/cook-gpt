@@ -1,6 +1,6 @@
 const client = require('../config/elasticsearch');
 const elasticservice = require('../services/elasticservice');
-const { handleItemsSearchPrompt, handleMorePromptForSearch, handleMorePromptForKeywords, handleKeywordsPrompt, handleGeneralPrompt } = require('../utils/conversation');
+const { handleKeywordPrompt, handleKeywordMorePrompt, handleKeywordsMorePrompt, handleKeywordsPrompt, handleGeneralPrompt } = require('../utils/conversation');
 const { deduplicateBySourceKeepLatest } = require('../utils/dataUtils');
 
 const DATA_INDEX_NAME = 'data'; // More generic index name
@@ -66,7 +66,7 @@ exports.searchDocumentsByName = async (req, res) => {
         const esResponse = await elasticservice.searchKeywordInES(name, 0, 10);
          // 2. If no hits, fallback
         if (!esResponse.hits.hits.length) {
-            const openAIRes = await handleItemsSearchPrompt(name);
+            const openAIRes = await handleKeywordPrompt(name);
             await elasticservice.saveResponsesToElasticsearch(openAIRes);
             return res.send(openAIRes);
         }
@@ -142,7 +142,7 @@ exports.generateMoreDocuments = async (req, res) =>{
             prompt = "Provide a step-by-step recipe for making French Toast.";
         }
         
-        const response = await handleMorePromptForSearch(prompt);
+        const response = await handleKeywordMorePrompt(prompt);
         // const parsedResponse = parseResultToJSON(response);
 await elasticservice.saveResponsesToElasticsearch(response);
 
@@ -161,7 +161,7 @@ exports.generateMoreDocumentsByKeywords = async (req, res)=>{
           //     prompt = "Provide a step-by-step recipe for making French Toast.";
           // }
           
-          const response = await handleMorePromptForKeywords(ingredients);
+          const response = await handleKeywordsMorePrompt(ingredients);
 
           return res.send(response);
       }

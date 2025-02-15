@@ -26,22 +26,7 @@ async function handleGeneralPrompt(keyword) {
     const isCookingRelated = detectCookingRelated(keyword);
     let adjustedPrompt = keyword;
 
-    let prompt = `You are a professional chef and culinary researcher tasked with retrieving a recipie for ${keyword}. Your output must adhere to the following rules:
-
-1. Use ONLY publicly available recipes from trusted sources, such as reputable websites or cookbooks.
-2. The recipe must match the source EXACTLY as it appears. Do not modify, reinterpret, or "inspire" recipes in any way.
-3. Include a direct link to the recipe or reference the cookbook with page numbers, if applicable.
-4. If no recipe exists with the specified name, explain why it cannot be found and suggest similar recipes that are publicly available with verifiable sources.
-
-Each recipe must include:
-- A full list of ingredients with exact measurements.
-- Numbered instructions for each step in the cooking process.
-- Optional tips to improve the dish or avoid common mistakes.
-- The exact source or reference where the recipe is derived from, including the website, cookbook, or professional culinary source.
-
-Use only trusted culinary sources, and relate all answers to cooking. Never generate hypothetical or AI-created recipes.
-
-`
+    let prompt = prompts.GENERAL_PROMPT.replace('\${keyword}', keyword);
 
     if (!isCookingRelated) {
         adjustedPrompt = `
@@ -68,33 +53,7 @@ Use only trusted culinary sources, and relate all answers to cooking. Never gene
     return assistantResponse;
 }
 
-async function handleKeywordsPrompt(keywords) {
-    const keywordsList = keywords.join(", ");
-    const prompt = `
-    You are a professional chef. User provides an array of ingredients: ${keywordsList}. Your output must follow the rules:
-1. Provide at least 4 **exact and complete** recipes that primarily use these ingredients, referencing only trusted, publicly available sources (e.g., AllRecipes, Food Network, Bon Appétit).
-   - If fewer than 4 recipes can be found, explicitly state that fewer were found and return only those that exist.
-2. If no recipe strictly matches the user’s ingredient list, propose minimal additional ingredients or similar recipes. However, do not include “outrageous” additions.
-3. If you truly cannot find any recipe, you may return fewer than four or even zero. In that case, explicitly mention that fewer were found.
-4. **Identify any ingredients that are not edible or are hazardous**. 
-   - Provide a short explanation for why these items are not suitable for cooking.
-5.  Do not use triple backticks, Markdown, or any code fencing. 
-    `;
 
-
-
-    // Add to conversation history
-    conversationHistory.push({ role: "user", content: prompt });
-
-    // let assistantResponse = await getChatCompletion(conversationHistory, prompt);
-    let assistantResponse = await getChatCompletionWithoutHistory(prompt);
-
-   
-    // Add assistant's response to conversation history
-    conversationHistory.push({ role: "assistant", content: assistantResponse });
-    outputConversationHistory();
-    return assistantResponse;
-}
 
 async function handleKeywordPrompt(keyword){
     // const prompt = `
@@ -129,29 +88,12 @@ async function handleKeywordPrompt(keyword){
     
 }
 
-async function handleMorePrompt(query){
-    const prompt = `4 More recipies for ${query}, follow the same rules as before`  ;
-    conversationHistory.push({ role: "user", content: prompt });
-    let assistantResponse = await getChatCompletion(conversationHistory, prompt);
-    console.log('assistantResponse:', assistantResponse);
-    conversationHistory.push({ role: "assistant", content: assistantResponse });
-    return assistantResponse;
-
-}
-
-async function handleKeywordMorePrompt(query){
+async function handleKeywordMorePrompt(keyword){
     console.log('Current conversation History: \n', conversationHistory);
     console.log('---------------------------------------------------');
     // Check if the history contains only the initial system message
     if (conversationHistory.length === 1 && conversationHistory[0].role === "system") {
-        const prompt = `
-    You are a professional chef. Your output must follow the rules:
-    
-    1. Provide **exact and complete recipes** for "${query}" from trusted and publicly available sources (e.g., AllRecipes, Food Network, Bon Appétit).
-    2. Ensure that the response includes **exactly 4 recipes**. If fewer than 4 recipes exist, explicitly state that fewer recipes were found and return only the available recipes.  
-    3. **Do not summarize** or omit details. Present the instructions exactly as written in the source.
-    Do not use triple backticks, Markdown, or any code fencing. 
-    `;
+        const prompt = prompts.KEYWORD_MORE_PROMPT.replace('\${keyword}', keyword);
         // Add the initial prompt
         conversationHistory.push({ role: "user", content: prompt });
         let assistantResponse = await getChatCompletion(conversationHistory, prompt);
@@ -160,7 +102,7 @@ async function handleKeywordMorePrompt(query){
         return assistantResponse;
     }
 
-    const prompt = `4 More recipies for ${query}, follow the same rules as before`  ;
+    const prompt = prompts.MORE_PROMPT.replace('\${keyword}', keyword);
     conversationHistory.push({ role: "user", content: prompt });
     let assistantResponse = await getChatCompletion(conversationHistory, prompt);
     console.log('assistantResponse:', assistantResponse);
@@ -168,6 +110,36 @@ async function handleKeywordMorePrompt(query){
     return assistantResponse;
 
 }
+
+async function handleMorePrompt(keyword){
+    const prompt = prompts.MORE_PROMPT.replace('\${query}', query);
+    conversationHistory.push({ role: "user", content: prompt });
+    let assistantResponse = await getChatCompletion(conversationHistory, prompt);
+    console.log('assistantResponse:', assistantResponse);
+    conversationHistory.push({ role: "assistant", content: assistantResponse });
+    return assistantResponse;
+
+}
+
+async function handleKeywordsPrompt(keywords) {
+    const keywordsList = keywords.join(", ");
+    const prompt = prompts.KEYWORDS_PROMPT.replace('\${keywordsList}', keywordsList);
+
+
+
+    // Add to conversation history
+    conversationHistory.push({ role: "user", content: prompt });
+
+    // let assistantResponse = await getChatCompletion(conversationHistory, prompt);
+    let assistantResponse = await getChatCompletionWithoutHistory(prompt);
+
+   
+    // Add assistant's response to conversation history
+    conversationHistory.push({ role: "assistant", content: assistantResponse });
+    outputConversationHistory();
+    return assistantResponse;
+}
+
 
 async function handleKeywordsMorePrompt(keywords){
     const keywordsList = keywords.join(", ");
@@ -176,16 +148,7 @@ async function handleKeywordsMorePrompt(keywords){
     console.log('---------------------------------------------------');
     // Check if the history contains only the initial system message
     if (conversationHistory.length === 1 && conversationHistory[0].role === "system") {
-        const prompt = `
-    You are a professional chef. User provides an array of ingredients: ${keywordsList}. Your output must follow the rules:
-1. Provide at least 4 **exact and complete** recipes that primarily use these ingredients, referencing only trusted, publicly available sources (e.g., AllRecipes, Food Network, Bon Appétit).
-   - If fewer than 4 recipes can be found, explicitly state that fewer were found and return only those that exist.
-2. If no recipe strictly matches the user’s ingredient list, propose minimal additional ingredients or similar recipes. However, do not include “outrageous” additions.
-3. If you truly cannot find any recipe, you may return fewer than four or even zero. In that case, explicitly mention that fewer were found.
-4. **Identify any ingredients that are not edible or are hazardous**. 
-   - Provide a short explanation for why these items are not suitable for cooking.
-5.  Do not use triple backticks, Markdown, or any code fencing. 
-    `;
+        const prompt = prompts.KEYWORDS_MORE_PROMPT.replace('\${keywordsList}', keywordsList);
         // Add the initial prompt
         conversationHistory.push({ role: "user", content: prompt });
         let assistantResponse = await getChatCompletion(conversationHistory, prompt);
@@ -194,7 +157,7 @@ async function handleKeywordsMorePrompt(keywords){
         return assistantResponse;
     }
 
-    const prompt = `4 More recipies for ${keywords}, follow the same rules as before`  ;
+    const prompt = prompts.MORE_PROMPT.replace('\${keyword}', keywords);
     conversationHistory.push({ role: "user", content: prompt });
     let assistantResponse = await getChatCompletion(conversationHistory, prompt);
     console.log('assistantResponse:', assistantResponse);

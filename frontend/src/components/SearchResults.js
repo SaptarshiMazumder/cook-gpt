@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
-import './SearchResults.css';
+import React, { useState } from "react";
+import "./SearchResults.css";
 
-function SearchResults({ searchQuery, onSearch, setSearchQuery, handleSearchChange, currentSearchQuery }) {
+function SearchResults({
+  searchQuery,
+  onSearch,
+  setSearchQuery,
+  handleSearchChange,
+  currentSearchQuery,
+}) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -14,9 +20,12 @@ function SearchResults({ searchQuery, onSearch, setSearchQuery, handleSearchChan
       console.log("Trying to get search results for:", currentSearchQuery);
       const encodedSearchQuery = currentSearchQuery;
       console.log("Encoded Search Query:", encodedSearchQuery);
-      const response = await fetch(`http://localhost:80/data/keywords?ingredients=${encodedSearchQuery}`, {
-        method: 'GET',
-      });
+      const response = await fetch(
+        `http://localhost:80/data/keywords?ingredients=${encodedSearchQuery}`,
+        {
+          method: "GET",
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -68,14 +77,21 @@ function SearchResults({ searchQuery, onSearch, setSearchQuery, handleSearchChan
         value={currentSearchQuery}
         onChange={handleSearchChange}
       />
-      <button onClick={handleSearch}>Search</button>
+      <button onClick={handleSearch} className="search-button">
+        Search
+      </button>
       <div className="card-grid">
         {results.map((result) => (
           <div key={result.id} className="card-link">
             <div className="card">
               <h2>{result.title}</h2>
               <p>Ingredients: {result.ingredients}</p>
-              <button onClick={() => handleRecipeClick(result)}>View Details</button>
+              <button
+                onClick={() => handleRecipeClick(result)}
+                className="view-details-button"
+              >
+                View Details
+              </button>
             </div>
           </div>
         ))}
@@ -85,14 +101,31 @@ function SearchResults({ searchQuery, onSearch, setSearchQuery, handleSearchChan
         <div className="tab-panel">
           <button onClick={handleClosePanel}>Close</button>
           <h2>{selectedRecipe.title}</h2>
-          <p><strong>Ingredients:</strong> {selectedRecipe.ingredients}</p>
-          <p><strong>Instructions:</strong> {selectedRecipe.instructions}</p>
-          <p><strong>Preparation Time:</strong> {selectedRecipe.preparationTime}</p>
-          <p><strong>Difficulty:</strong> {selectedRecipe.difficulty}</p>
-          <p><strong>Tips:</strong> {selectedRecipe.tips}</p>
-          <p><strong>Source:</strong> {selectedRecipe.source}</p>
-          <p><strong>Link:</strong> <a href={selectedRecipe.link}>{selectedRecipe.link}</a></p>
-          <p><strong>Tags:</strong> {selectedRecipe.tags.join(', ')}</p>
+          <p>
+            <strong>Ingredients:</strong> {selectedRecipe.ingredients}
+          </p>
+          <p>
+            <strong>Instructions:</strong> {selectedRecipe.instructions}
+          </p>
+          <p>
+            <strong>Preparation Time:</strong> {selectedRecipe.preparationTime}
+          </p>
+          <p>
+            <strong>Difficulty:</strong> {selectedRecipe.difficulty}
+          </p>
+          <p>
+            <strong>Tips:</strong> {selectedRecipe.tips}
+          </p>
+          <p>
+            <strong>Source:</strong> {selectedRecipe.source}
+          </p>
+          <p>
+            <strong>Link:</strong>{" "}
+            <a href={selectedRecipe.link}>{selectedRecipe.link}</a>
+          </p>
+          <p>
+            <strong>Tags:</strong> {selectedRecipe.tags.join(", ")}
+          </p>
         </div>
       )}
     </div>

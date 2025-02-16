@@ -21,7 +21,7 @@ function SearchResults({ searchQuery, onSearch, setSearchQuery, handleSearchChan
       }
 
       const responseData = await response.json();
-      setResults(responseData.results);
+      setResults(responseData.items);
       console.log("Search Results:", responseData.data);
       setLoading(false);
     } catch (e) {

@@ -95,7 +95,7 @@ exports.searchDocumentsByName = async (req, res) => {
 };
 
 exports.searchDocumentsByIngredients = async (req, res) => {
-    let { ingredients } = req.query;
+    let { ingredients } = req.query; 
 
     if (!ingredients) {
         return res.status(400).json({ error: "Keywords must be provided." });
@@ -120,13 +120,16 @@ exports.searchDocumentsByIngredients = async (req, res) => {
         }
         const aires = JSON.parse(llmRes);
         const esHits = esResponse.hits.hits.map((hit) => ({
-            id: hit._id,
-            score: hit._score,
-            ...hit._source
+            items: [{
+                id: hit._id,
+                score: hit._score,
+                ...hit._source
+            }]
           }));
         const combinedResults = [aires, ...esHits];
+        const flattenedResults = combinedResults.flatMap(result => result.items);
          // 4) Deduplicate, keeping newest item for each source
-        const uniqueLatest = deduplicateBySourceKeepLatest(combinedResults);
+        const uniqueLatest = deduplicateBySourceKeepLatest(flattenedResults);
         return res.json({
             total: uniqueLatest.length,
             results: uniqueLatest,

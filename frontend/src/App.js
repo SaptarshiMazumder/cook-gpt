@@ -10,6 +10,8 @@ import AuthSuccess from './components/AuthSuccess';
 import Dashboard from './components/Dashboard';
 import PrivateRoute from './components/PrivateRoute';
 import AudioGenerator from './components/AudioGenerator';
+import IndexedElements from './components/IndexedElements';
+
 function App() {
     return (
         <Router>
@@ -26,10 +28,9 @@ function App() {
                 <Route path="/" element={<LoginWithGoogle />} />
                 <Route path="/auth-success" element={<AuthSuccess />} />
                 <Route path="/audio" element={<AudioGenerator />} />
+                <Route path="/indexed-elements" element={<IndexedElements />} />
                 {/* Protected Routes */}
-                <Route
-                    path="/dashboard"
-                    element={
+                <Route path="/dashboard" element={
                         <PrivateRoute>
                             <Dashboard />
                         </PrivateRoute>

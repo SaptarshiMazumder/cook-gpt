@@ -1,5 +1,5 @@
 const { detectCookingRelated } = require('./compromise');
-const { getChatCompletion, outputAudioStream, getChatCompletionWithoutHistory } = require('./openai');
+const { getChatCompletion, outputAudioStream, getChatCompletionWithoutHistory } = require('./llm');
 const prompts = require('../config/prompts');
 let conversationHistory = [
     {

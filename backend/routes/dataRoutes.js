@@ -40,7 +40,7 @@ router.get('/all-indexed', dataController.listAllDocumentsFromES); // Updated fu
 router.get('/', dataController.testAPIWithPrompt);
 
 router.get('/search', dataController.searchDocumentsByName); // Updated function name
-router.post('/keywords', dataController.searchDocumentsByIngredients); // Updated function name
+router.get('/keywords', dataController.searchDocumentsByIngredients); // Updated function name
 router.get('/more-search', dataController.generateMoreDocuments); // Updated function name
 router.post('/more-keywords', dataController.generateMoreDocumentsByKeywords); // Updated function name
 

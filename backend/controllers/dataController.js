@@ -95,9 +95,15 @@ exports.searchDocumentsByName = async (req, res) => {
 };
 
 exports.searchDocumentsByIngredients = async (req, res) => {
-    const { ingredients } = req.body;
+    let { ingredients } = req.query;
 
-    if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
+    if (!ingredients) {
+        return res.status(400).json({ error: "Keywords must be provided." });
+    }
+
+    ingredients = ingredients.split(',');
+
+    if (!Array.isArray(ingredients) || ingredients.length === 0) {
         return res.status(400).json({ error: "Keywords must be provided as a non-empty array." });
     }
 

@@ -1,36 +1,52 @@
-import { useEffect, useState } from 'react';
-import SubmitRequest from './components/SubmitRequest';
+import { useState } from 'react';
 import React from 'react';
-import { GoogleLogin } from '@react-oauth/google';
-import axios from 'axios';
-import { jwtDecode } from "jwt-decode";
-import LoginWithGoogle from './components/LoginWithGoogle';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AuthSuccess from './components/AuthSuccess';
 import Dashboard from './components/Dashboard';
 import PrivateRoute from './components/PrivateRoute';
+import LoginWithGoogle from './components/LoginWithGoogle';
 import AudioGenerator from './components/AudioGenerator';
 import IndexedElements from './components/IndexedElements';
+import SearchResults from './components/SearchResults';
 
 function App() {
-    return (
-        <Router>
-            
-            <Routes>
-                <Route path="/" element={<LoginWithGoogle />} />
-                <Route path="/auth-success" element={<AuthSuccess />} />
-                <Route path="/audio" element={<AudioGenerator />} />
-                <Route path="/indexed-elements" element={<IndexedElements />} />
-                {/* Protected Routes */}
-                <Route path="/dashboard" element={
-                        <PrivateRoute>
-                            <Dashboard />
-                        </PrivateRoute>
-                    }
-                />
-            </Routes>
-        </Router>
-    );
+  const [searchQuery, setSearchQuery] = useState('');
+  const [submittedSearchQuery, setSubmittedSearchQuery] = useState('');
+
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value);
+  };
+
+  const handleSearchSubmit = (searchQuery) => {
+    setSubmittedSearchQuery(searchQuery);
+  };
+
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<LoginWithGoogle />} />
+        <Route path="/auth-success" element={<AuthSuccess />} />
+        <Route path="/audio" element={<AudioGenerator />} />
+        <Route path="/indexed-elements" element={<IndexedElements />} />
+        {/* Protected Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <PrivateRoute>
+              <Dashboard />
+            </PrivateRoute>
+          }
+        />
+      </Routes>
+      <SearchResults
+        searchQuery={submittedSearchQuery}
+        onSearch={handleSearchSubmit}
+        setSearchQuery={setSearchQuery}
+        handleSearchChange={handleSearchChange}
+        currentSearchQuery={searchQuery}
+      />
+    </Router>
+  );
 }
 
 export default App;

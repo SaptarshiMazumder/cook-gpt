@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const routes = require('./routes/routes');
 const encryptionRoutes = require('./routes/encryption');
 const dataRoutes = require('./routes/dataRoutes');
 const { testEncryption } = require('./controllers/encryption/encryptionController');
@@ -19,7 +18,7 @@ app.use(express.json());
 app.use(cors());
 // app.use(passport.initialize());
 
-app.use('/', routes);
+// app.use('/', routes);
 app.use('/auth', authRoutes);
 app.use('/api', encryptionRoutes);
 app.use('/data', dataRoutes);

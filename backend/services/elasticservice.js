@@ -53,19 +53,19 @@ async function searchKeywordInES (keyword, page, size) {
     
   }
 
-async function searchKeywordsInES(ingredients, page = 0, size = 10) {
+async function searchKeywordsInES(keywords, page = 0, size = 10) {
     const query = {
         index: INDEX_NAME,
         body: {
             query: {
                 bool: {
                     must: [
-                        // Ensure all specified ingredients are present
+                        // Ensure all specified keywords are present
                         {
                             bool: {
-                                must: ingredients.map(ingredient => ({
+                                must: keywords.map(keyword => ({
                                     match: {
-                                        "ingredients": ingredient,
+                                        "ingredients": keyword,
                                     },
                                 })),
                             },
@@ -75,13 +75,13 @@ async function searchKeywordsInES(ingredients, page = 0, size = 10) {
                         // Boost documents with exact matches for ingredients
                         {
                             terms: {
-                                "ingredients.keyword": ingredients,
+                                "ingredients.keyword": keywords,
                             },
                         },
                         // Match in other fields (e.g., title, description) with fuzziness
                         {
                             multi_match: {
-                                query: ingredients.join(" "),
+                                query: keywords.join(" "),
                                 fields: ["title^2", "description", "tags^2"],
                                 fuzziness: "AUTO",
                                 type: "most_fields",
@@ -93,7 +93,7 @@ async function searchKeywordsInES(ingredients, page = 0, size = 10) {
             },
             highlight: {
                 fields: {
-                    ingredients: {},
+                    keywords: {},
                     title: {},
                     description: {},
                 },
@@ -107,9 +107,9 @@ async function searchKeywordsInES(ingredients, page = 0, size = 10) {
     console.log('Ingredient-based search response:', response);
     return response;
 }
-async function saveResponsesToElasticsearch(recipesArray) {
-    console.log('Recipes Array:', recipesArray);
-    const jsonData = JSON.parse(recipesArray);
+async function saveResponsesToElasticsearch(resultsArray) {
+    console.log('Recipes Array:', resultsArray);
+    const jsonData = JSON.parse(resultsArray);
     const bulkOps = [];
 
     for (const recipe of jsonData.items) {

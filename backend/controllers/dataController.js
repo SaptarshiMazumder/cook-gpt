@@ -66,9 +66,9 @@ exports.searchDocumentsByName = async (req, res) => {
         const esResponse = await elasticservice.searchKeywordInES(name, 0, 10);
          // 2. If no hits, fallback
         if (!esResponse.hits.hits.length) {
-            const openAIRes = await handleKeywordPrompt(name);
-            await elasticservice.saveResponsesToElasticsearch(openAIRes);
-            return res.send(openAIRes);
+            const llmRes = await handleKeywordPrompt(name);
+            await elasticservice.saveResponsesToElasticsearch(llmRes);
+            return res.send(llmRes);
         }
         // 3) Filter out hits with _score < 1.0
         const filteredHits = esResponse.hits.hits
@@ -92,21 +92,21 @@ exports.searchDocumentsByIngredients = async (req, res) => {
     const { ingredients } = req.body;
 
     if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
-        return res.status(400).json({ error: "Ingredients must be provided as a non-empty array." });
+        return res.status(400).json({ error: "Keywords must be provided as a non-empty array." });
     }
 
     try {
          // 1) Call OpenAI API first to get AI-based recipes
-        const openAIRes = await handleKeywordsPrompt(ingredients);
+        const llmRes = await handleKeywordsPrompt(ingredients);
          // 2) (Optional) Save the AI results to Elasticsearch
         //    This ensures they're indexed for future queries
-        await elasticservice.saveResponsesToElasticsearch(openAIRes);
+        await elasticservice.saveResponsesToElasticsearch(llmRes);
         const esResponse = await elasticservice.searchKeywordsInES(ingredients);
 
         if (!esResponse.hits.hits.length) {
-            return res.send(openAIRes);
+            return res.send(llmRes);
         }
-        const aires = JSON.parse(openAIRes);
+        const aires = JSON.parse(llmRes);
         const esHits = esResponse.hits.hits.map((hit) => ({
             id: hit._id,
             score: hit._score,
@@ -144,7 +144,7 @@ exports.generateMoreDocuments = async (req, res) =>{
         
         const response = await handleKeywordMorePrompt(prompt);
         // const parsedResponse = parseResultToJSON(response);
-await elasticservice.saveResponsesToElasticsearch(response);
+        await elasticservice.saveResponsesToElasticsearch(response);
 
           return res.send(response);
       }

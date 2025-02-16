@@ -54,7 +54,7 @@ router.post('/', async (req, res) => {
     }
 
     // Generate tags for the new recipe
-const allDescriptions = dataList.map(recipe => recipe.description);
+const allDescriptions = dataList.map(dataItem => dataItem.description);
     allDescriptions.push(description); // Add the new description to the corpus
     const tags = generateTagsUsingTFIDF(allDescriptions, description);
 
@@ -71,7 +71,7 @@ const allDescriptions = dataList.map(recipe => recipe.description);
     dataList.push(newData);
 
     // Write updated list to JSON file
-fs.writeFile(dataFilePath, JSON.stringify(recipiesList, null, 2), (err) => {
+fs.writeFile(dataFilePath, JSON.stringify(dataList, null, 2), (err) => {
         if (err) {
 console.error("Error writing to data.json:", err);
 return res.status(500).json({ error: "Failed to save data." });

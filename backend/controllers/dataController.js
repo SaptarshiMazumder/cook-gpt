@@ -1,6 +1,12 @@
 const client = require('../config/elasticsearch');
 const elasticservice = require('../services/elasticservice');
-const { handleKeywordPrompt, handleKeywordMorePrompt, handleKeywordsMorePrompt, handleKeywordsPrompt, handleGeneralPrompt } = require('../utils/conversation');
+const { 
+    handleKeywordPrompt, 
+    handleKeywordMorePrompt, 
+    handleKeywordsMorePrompt, 
+    handleKeywordsPrompt, 
+    handleGeneralPrompt 
+} = require('../utils/conversation');
 const { deduplicateBySourceKeepLatest } = require('../utils/dataUtils');
 
 const DATA_INDEX_NAME = 'data'; // More generic index name

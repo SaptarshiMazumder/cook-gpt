@@ -24,7 +24,6 @@ function formatMarkdownResponse(response) {
 
 async function handleGeneralPrompt(keyword) {
     const isCookingRelated = detectCookingRelated(keyword);
-    let adjustedPrompt = keyword;
 
     let prompt = prompts.GENERAL_PROMPT.replace('\${keyword}', keyword);
 
@@ -56,14 +55,7 @@ async function handleGeneralPrompt(keyword) {
 
 
 async function handleKeywordPrompt(keyword){
-    // const prompt = `
-    // You are a professional chef. Your output must follow the rules:
     
-    // 1. Provide **exact and complete recipes** for "${keyword}" from trusted and publicly available sources (e.g., AllRecipes, Food Network, Bon Appétit).
-    // 2. Ensure that the response includes **exactly 4 recipes**. If fewer than 4 recipes exist, explicitly state that fewer recipes were found and return only the available recipes.  
-    // 3. **Do not summarize** or omit details. Present the instructions exactly as written in the source.
-    // Do not use triple backticks, Markdown, or any code fencing. 
-    // `;
     
     let prompt = prompts.KEYWORD_PROMPT.replace('${keyword}', keyword);
 
@@ -72,11 +64,7 @@ async function handleKeywordPrompt(keyword){
     // let assistantResponse = await getChatCompletion(conversationHistory, prompt);
     let assistantResponse = await getChatCompletionWithoutHistory(prompt);
 
-    // if (!assistantResponse.toLowerCase().includes("source")) {
-    //     assistantResponse += "\n\n(Note: The source was not explicitly provided in the response. Please validate or request the source.)";
-    // }
-    // const formattedResponse = formatMarkdownResponse(assistantResponse);
-
+    
     console.log('openai Response:', assistantResponse);
 
 

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import './IndexedElements.css';
 
 function IndexedElements() {
   const [elements, setElements] = useState([]);
+  const [totalElements, setTotalElements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -15,6 +17,7 @@ function IndexedElements() {
         }
         const responseData = await response.json();
         setElements(responseData.data);
+        setTotalElements(responseData.total);
         console.log("Elements:", responseData.data);
         setLoading(false);
       } catch (e) {
@@ -35,13 +38,16 @@ function IndexedElements() {
   }
 
   return (
-    <div>
-      <h1>Indexed Elements</h1>
-      <ul>
+    <div className="indexed-elements-container">
+      <h1>Indexed Elements ({totalElements})</h1>
+      <div className="card-grid">
         {elements.map((element) => (
-          <li key={element.id}>{element.title}</li>
+          <div key={element.id} className="card">
+            <h2>{element.title}</h2>
+            <p>Ingredients: {element.ingredients}</p>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }

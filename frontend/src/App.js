@@ -16,14 +16,6 @@ function App() {
     return (
         <Router>
             
-            <div>
-                <h1></h1>
-                <h1></h1>
-                <SubmitRequest />
-                <LoginWithGoogle />
-                {/* <GoogleLogin onSuccess={handleLogin} onError={() => console.error('Login Failed')} /> */}
-
-            </div>
             <Routes>
                 <Route path="/" element={<LoginWithGoogle />} />
                 <Route path="/auth-success" element={<AuthSuccess />} />

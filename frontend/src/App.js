@@ -8,6 +8,7 @@ import LoginWithGoogle from './components/LoginWithGoogle';
 import AudioGenerator from './components/AudioGenerator';
 import IndexedElements from './components/IndexedElements';
 import SearchResults from './components/SearchResults';
+import RecipeDetailPage from './components/RecipeDetailPage';
 
 function App() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -28,6 +29,7 @@ function App() {
         <Route path="/auth-success" element={<AuthSuccess />} />
         <Route path="/audio" element={<AudioGenerator />} />
         <Route path="/indexed-elements" element={<IndexedElements />} />
+        <Route path="/recipe/:recipeId" element={<RecipeDetailPage />} />
         {/* Protected Routes */}
         <Route
           path="/dashboard"
@@ -37,14 +39,14 @@ function App() {
             </PrivateRoute>
           }
         />
-      </Routes>
-      <SearchResults
+         <Route path="/search/keywords" element={<SearchResults
         searchQuery={submittedSearchQuery}
         onSearch={handleSearchSubmit}
         setSearchQuery={setSearchQuery}
         handleSearchChange={handleSearchChange}
         currentSearchQuery={searchQuery}
-      />
+      />} />
+      </Routes>
     </Router>
   );
 }
